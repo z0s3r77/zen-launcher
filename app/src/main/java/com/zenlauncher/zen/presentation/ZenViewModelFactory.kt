@@ -5,6 +5,7 @@ import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.zenlauncher.zen.ZenContainer
 import com.zenlauncher.zen.presentation.apps.AppDrawerViewModel
+import com.zenlauncher.zen.presentation.apps.HomeAppsViewModel
 import com.zenlauncher.zen.presentation.apps.RestrictedAppsViewModel
 import com.zenlauncher.zen.presentation.home.HomeViewModel
 import com.zenlauncher.zen.presentation.notifications.NotificationsViewModel
@@ -31,6 +32,13 @@ fun zenViewModelFactory(container: ZenContainer): ViewModelProvider.Factory = vi
     }
     initializer {
         AppDrawerViewModel(
+            preferences = container.preferences,
+            installedApps = container.installedApps,
+            restrictions = container.restrictions,
+        )
+    }
+    initializer {
+        HomeAppsViewModel(
             preferences = container.preferences,
             installedApps = container.installedApps,
             restrictions = container.restrictions,

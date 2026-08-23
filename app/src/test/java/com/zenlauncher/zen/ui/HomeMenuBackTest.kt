@@ -41,6 +41,7 @@ class HomeMenuBackTest {
                     ),
                     onLaunchApp = {},
                     onOpenDrawer = {},
+                    onOpenHomeApps = {},
                     onStartSession = {},
                     onOpenRestricted = {},
                     onOpenStats = {},

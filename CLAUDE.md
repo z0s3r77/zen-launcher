@@ -30,15 +30,16 @@ tocar cualquier cosa, dar por supuesto lo siguiente:
   Zen lo compensa reconociendo el arrastre por su cuenta (`EdgeBackPolicy`, conectado en
   `ZenScreen` vía `onSwipeBack`), así que se vuelve al primer intento; la barra de gestos
   sigue asomando un instante y eso no tiene arreglo sin Device Owner. Cada pantalla nueva lleva `onBack` y lo pasa a
-  `ZenHeaderStrip`. Por lo mismo, **ningún gesto de Zen puede empezar en el borde
-  inferior** (ver `SwipeUpPolicy`): ahí el usuario va al sistema, y un gesto del sistema
-  no puede tener efectos secundarios en la aplicación. La home se traga el gesto de atrás —no hay a dónde volver—, **salvo
+  `ZenHeaderStrip`. **Volver desde un lateral es el único gesto propio de Zen**, y no
+  habrá más: la lista de aplicaciones se abría deslizando hacia arriba y se retiró
+  —saltaba desde cualquier punto de la home, también con el menú abierto—; lo que abre
+  algo se toca y se ve. La home se traga el gesto de atrás —no hay a dónde volver—, **salvo
   con el menú abierto**, donde lo cierra: es la única cara de la home de la que se sale.
 - **La home no se desplaza y no crece.** Todo cabe de una vez y el reloj está siempre en
-  el mismo píxel. Lo nuevo va al menú plegado o a un gesto (deslizar hacia arriba abre la
-  lista completa), nunca a una fila permanente más. Las dos únicas filas permanentes son
-  **Notas rápidas** y **Menú**; el resto del alto es retícula, y lo que se sume ahí
-  empuja algo fuera de la pantalla. El menú abierto **sustituye a la pantalla entera** y
+  el mismo píxel. Lo nuevo va al menú plegado, nunca a una fila permanente más. Las tres
+  únicas filas permanentes son **Todas las aplicaciones** (bajo la retícula), **Notas
+  rápidas** y **Menú**; el resto del alto es retícula, y lo que se sume ahí empuja algo
+  fuera de la pantalla. El menú abierto **sustituye a la pantalla entera** y
   deja solo la franja de cabecera: lo que se añada ahí no compite con el reloj.
 - **Lo que no tiene nada detrás no se pinta.** El mando del reproductor aparece solo si
   hay audio o una sesión de medios viva, y la marca de avisos solo si hay avisos. Una
@@ -64,7 +65,7 @@ tocar cualquier cosa, dar por supuesto lo siguiente:
 ## Comandos
 
 ```bash
-./gradlew testDebugUnitTest             # 189 tests JVM (incluye UI de Compose sobre Robolectric)
+./gradlew testDebugUnitTest             # 215 tests JVM (incluye UI de Compose sobre Robolectric)
 ./gradlew assembleDebug                 # APK -> app/build/outputs/apk/debug/
 ./gradlew installDebug                  # build + instalar en dispositivo conectado
 ./gradlew lint                          # informe -> app/build/reports/lint-results-*.html

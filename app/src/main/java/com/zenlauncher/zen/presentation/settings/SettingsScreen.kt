@@ -11,13 +11,13 @@ import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import com.zenlauncher.zen.R
 import com.zenlauncher.zen.domain.model.ZenDuration
+import com.zenlauncher.zen.presentation.apps.HomeAppsUiState
 import com.zenlauncher.zen.presentation.components.MonoLabel
 import com.zenlauncher.zen.presentation.components.StatusMark
 import com.zenlauncher.zen.presentation.components.ZenHairline
 import com.zenlauncher.zen.presentation.components.ZenHeaderStrip
 import com.zenlauncher.zen.presentation.components.ZenListRow
 import com.zenlauncher.zen.presentation.components.ZenScreen
-import com.zenlauncher.zen.presentation.components.ZenSearchField
 import com.zenlauncher.zen.presentation.theme.ZenColors
 import com.zenlauncher.zen.presentation.theme.ZenSpacing
 
@@ -27,8 +27,7 @@ fun SettingsScreen(
     isDefaultLauncher: Boolean,
     doubleTapLockEnabled: Boolean,
     nowPlayingEnabled: Boolean,
-    onQueryChange: (String) -> Unit,
-    onToggleFavourite: (FavouriteRow) -> Unit,
+    onOpenHomeApps: () -> Unit,
     onSetDuration: (ZenDuration) -> Unit,
     onRequestHomeRole: () -> Unit,
     onToggleDoubleTapLock: () -> Unit,
@@ -43,7 +42,9 @@ fun SettingsScreen(
     ZenScreen(modifier = modifier, onSwipeBack = onBack) {
         ZenHeaderStrip(
             left = stringResource(R.string.settings_title),
-            right = "%02d / %02d".format(state.chosenCount, SettingsUiState.MAX_FAVOURITES),
+            // El dato de la franja es la duracion que se usara al pulsar ZEN. Antes era
+            // el numero de aplicaciones del inicio, cuando elegirlas se hacia aqui.
+            right = "%d MIN".format(state.preferredDuration.wholeMinutes),
             onBack = onBack,
         )
 
@@ -154,6 +155,26 @@ fun SettingsScreen(
                 )
 
                 Spacer(Modifier.height(ZenSpacing.XXLarge))
+                ZenHairline()
+                // Solo la puerta y el dato. La lista de todas las aplicaciones colgaba
+                // de aqui: para poner el telefono en el inicio habia que reconocerlo
+                // entre doscientas filas, y esta pantalla no tenia final.
+                ZenListRow(
+                    label = stringResource(R.string.settings_home_apps),
+                    labelColor = ZenColors.Secondary,
+                    onClick = onOpenHomeApps,
+                    trailing = {
+                        MonoLabel(
+                            text = "%02d / %02d".format(
+                                state.homeAppsCount,
+                                HomeAppsUiState.MAX_HOME_APPS,
+                            ),
+                        )
+                    },
+                )
+                ZenHairline()
+
+                Spacer(Modifier.height(ZenSpacing.XXLarge))
                 MonoLabel(text = stringResource(R.string.settings_duration))
                 Spacer(Modifier.height(ZenSpacing.Small))
                 ZenHairline()
@@ -175,42 +196,6 @@ fun SettingsScreen(
             }
 
             item {
-                Spacer(Modifier.height(ZenSpacing.XXLarge))
-                MonoLabel(text = stringResource(R.string.settings_favourites))
-                ZenSearchField(
-                    value = state.query,
-                    onValueChange = onQueryChange,
-                    placeholder = stringResource(R.string.settings_favourites_placeholder),
-                )
-                ZenHairline()
-            }
-
-            items(state.rows, key = { it.app.packageName }) { row ->
-                val selectable = row.chosen || state.canChooseMore
-                ZenListRow(
-                    label = row.app.label,
-                    index = row.position?.let { "%02d".format(it + 1) },
-                    labelColor = when {
-                        row.chosen -> ZenColors.Foreground
-                        selectable -> ZenColors.Muted
-                        else -> ZenColors.Disabled
-                    },
-                    onClick = if (selectable) ({ onToggleFavourite(row) }) else null,
-                    trailing = { StatusMark(active = row.chosen) },
-                )
-                ZenHairline()
-            }
-
-            item {
-                Spacer(Modifier.height(ZenSpacing.Large))
-                MonoLabel(
-                    text = stringResource(
-                        R.string.settings_favourites_notice,
-                        SettingsUiState.MAX_FAVOURITES,
-                    ),
-                    color = ZenColors.Dim,
-                    maxLines = 3,
-                )
                 Spacer(Modifier.height(ZenSpacing.Medium))
             }
         }

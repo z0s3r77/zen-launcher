@@ -18,7 +18,8 @@ Dispositivo objetivo: **Nothing Phone (2a)** con Nothing OS 4.1 / Android 16.
 
 - **La home no se desplaza** — el reloj está siempre en el mismo píxel; el menú abierto
   ocupa el sitio de la retícula en lugar de alargar la página. La lista completa de
-  aplicaciones se abre **deslizando hacia arriba**, y también desde el menú.
+  aplicaciones se abre desde la fila **Todas las aplicaciones**, justo debajo de la
+  retícula.
 - **Salida propia en cada pantalla** — con las barras del sistema ocultas, el gesto de
   atrás lo intercepta Zen (el primer deslizamiento de Android saca las barras en vez de
   volver, así que la aplicación reconoce el arrastre desde el borde por su cuenta y
@@ -26,11 +27,16 @@ Dispositivo objetivo: **Nothing Phone (2a)** con Nothing OS 4.1 / Android 16.
   flecha de volver.
 - **Launcher minimalista** — hora, fecha y una retícula de
   texto de dos columnas con las aplicaciones **que no quitan tiempo** (buscar, WhatsApp,
-  teléfono, reloj, ajustes, mensajes, Spotify y el banco). Sin iconos. Hasta que se eligen favoritos en Ajustes, esa lista es la de por defecto
-  y solo aparecen las que están instaladas. El resto de aplicaciones vive en una lista
-  de texto con buscador, a un gesto de distancia pero fuera de la vista: se abre
-  deslizando hacia arriba **desde el cuerpo de la pantalla**, no desde el borde
-  inferior, que es del sistema y solo saca la barra de gestos.
+  teléfono, reloj, ajustes, mensajes, Spotify y el banco). Sin iconos. Hasta que se eligen
+  las propias en **Ajustes Zen → Aplicaciones en el Inicio**, esa lista es la de por
+  defecto y solo aparecen las que están instaladas. El resto de aplicaciones vive en una
+  lista de texto con buscador, a un toque de la fila **Todas las aplicaciones**.
+
+  Esa fila estuvo escondida tras un deslizamiento hacia arriba y el gesto **se retiró**:
+  se disparaba desde cualquier punto de la pantalla de inicio —también encima de la
+  retícula y con el menú abierto—, así que la lista se abría en mitad de cualquier otra
+  intención. En una pantalla de inicio, lo que abre algo tiene que verse; Zen ya no tiene
+  más gesto propio que el de volver desde un lateral.
 - **Sin barra de gestos** — la línea blanca del borde inferior no se dibuja: no hay
   "atrás" ni "recientes" a los que ir desde una pantalla de inicio. La **barra de estado
   sí se queda**: ocultarla quitaba los iconos de notificación, pero hacía que Android la
@@ -40,8 +46,8 @@ Dispositivo objetivo: **Nothing Phone (2a)** con Nothing OS 4.1 / Android 16.
   de atrás no hace nada aquí, salvo cerrar el menú si está abierto (ver
   [límites](#la-barra-de-gestos-no-se-puede-desactivar)).
 - **Botón ZEN** — a la derecha de la hora, la única acción con botón propio. Todo lo
-  demás (iniciar Zen con duración, lista completa, notificaciones, restringidas,
-  registro, ajustes y salir de Zen) está guardado tras la fila **Menú**, plegada por
+  demás (iniciar Zen con duración, notificaciones, restringidas, registro, Ajustes Zen y
+  salir de Zen) está guardado tras la fila **Menú**, plegada por
   defecto. Al abrirla el menú **ocupa la pantalla entera**: se van el reloj, el botón
   ZEN, la batería y el mando, y solo queda la franja con la fecha y el estado de la
   sesión. La fila se enciende en blanco mientras está abierto, y se cierra por donde se
@@ -65,6 +71,11 @@ Dispositivo objetivo: **Nothing Phone (2a)** con Nothing OS 4.1 / Android 16.
   y enlacen ideas entre sí.
 - **Aplicaciones restringidas** — se marcan y desaparecen del launcher y de la lista.
   El estado se lee como texto (`BLOQUEADA` / `LIBRE`), no como un interruptor.
+- **Elegir lo que se ve en el inicio** — pantalla propia (`Ajustes Zen → Aplicaciones en
+  el Inicio`, o `Elegir aplicaciones` en una home todavía sin favoritas): arriba lo que
+  ya está puesto, numerado igual que la retícula y tocando se quita; abajo un buscador
+  que **no lista nada hasta que se escribe**. Colgaba de Ajustes como una lista con las
+  doscientas aplicaciones del teléfono, y elegir entre doscientas no es elegir.
 - **Movimiento, solo cuando algo cambia** — abrir una pantalla, abrir el menú o que
   aparezca el mando del reproductor se anima 180 ms; volver, 120. Nada corre en bucle ni
   se mueve sin que lo hayas provocado, y los desplazamientos son 1/10 de la pantalla:
@@ -81,7 +92,7 @@ Dispositivo objetivo: **Nothing Phone (2a)** con Nothing OS 4.1 / Android 16.
 Zen no bloquea nada en v0.1: recientes, panel de notificaciones y ajustes rápidos
 siguen funcionando con Zen como pantalla de inicio, y la barra de gestos vuelve un
 momento deslizando desde el borde inferior. Para devolver la pantalla de inicio
-al launcher anterior: **Menú → Salir de Zen** (o **Ajustes → Cambiar la pantalla de
+al launcher anterior: **Menú → Salir de Zen** (o **Ajustes Zen → Cambiar la pantalla de
 inicio**), que abre el selector del sistema; también desde Android en
 Aplicaciones → Aplicación de inicio predeterminada, o desinstalando Zen. Android no
 permite renunciar al rol de pantalla de inicio desde la propia aplicación: lo máximo
@@ -183,9 +194,9 @@ Cadena de herramientas fijada:
    siete veces en Número de compilación) y dentro, **Depuración USB**.
 2. Conectar por USB y aceptar la huella del ordenador.
 3. `./gradlew installDebug`
-4. Abrir Zen → **Ajustes → Zen como pantalla de inicio** y aceptar el diálogo del
+4. Abrir Zen → **Ajustes Zen → Zen como pantalla de inicio** y aceptar el diálogo del
    sistema (`RoleManager.ROLE_HOME`).
-5. Opcional: **Ajustes → Duración preferida** y **Aplicaciones en el inicio**.
+5. Opcional: **Ajustes Zen → Duración preferida** y **Aplicaciones en el Inicio**.
 
 Para volver al launcher de Nothing: Ajustes de Android → Aplicaciones → Aplicación de
 inicio predeterminada.
@@ -234,7 +245,7 @@ auriculares. A cambio, el mando no sabe quién la recibe.
 **oyente de notificaciones habilitado** como prueba de la concesión. No hay otra API
 pública. Zen lo resuelve así:
 
-- El acceso es **opcional y está apagado**. Se concede desde *Ajustes → Información de
+- El acceso es **opcional y está apagado**. Se concede desde *Ajustes Zen → Información de
   la canción*, que abre la pantalla del sistema; se revoca en el mismo sitio.
 - Sin conceder nada, el mando funciona igual y el estado (`SONANDO` / `EN PAUSA`) se
   deduce de `AudioManager.isMusicActive`.
@@ -379,7 +390,7 @@ cronómetro se reconstruye desde las marcas de tiempo), abandono con confirmaci�
 registro agregando ambas sesiones y diálogo de `ROLE_HOME` mostrándose.
 
 Verificado además con Zen puesto como launcher predeterminado y tras reiniciar el
-dispositivo: el rol persiste y la salida desde **Ajustes → Cambiar la pantalla de
+dispositivo: el rol persiste y la salida desde **Ajustes Zen → Cambiar la pantalla de
 inicio** abre el selector de aplicación de inicio de Android.
 
 El aviso disparado por la alarma **está verificado en hardware**: con la pantalla

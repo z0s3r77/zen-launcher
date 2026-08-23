@@ -14,6 +14,8 @@ import androidx.navigation.navArgument
 import com.zenlauncher.zen.domain.model.ZenDuration
 import com.zenlauncher.zen.presentation.apps.AppDrawerScreen
 import com.zenlauncher.zen.presentation.apps.AppDrawerViewModel
+import com.zenlauncher.zen.presentation.apps.HomeAppsScreen
+import com.zenlauncher.zen.presentation.apps.HomeAppsViewModel
 import com.zenlauncher.zen.presentation.apps.RestrictedAppsScreen
 import com.zenlauncher.zen.presentation.apps.RestrictedAppsViewModel
 import com.zenlauncher.zen.presentation.home.HomeScreen
@@ -70,6 +72,7 @@ fun ZenNavHost(
                 state = state,
                 onLaunchApp = homeViewModel::launch,
                 onOpenDrawer = { navController.navigate(ZenRoute.DRAWER) },
+                onOpenHomeApps = { navController.navigate(ZenRoute.HOME_APPS) },
                 onStartSession = { navController.navigate(ZenRoute.SESSION_SETUP) },
                 onOpenRestricted = { navController.navigate(ZenRoute.RESTRICTED) },
                 onOpenStats = { navController.navigate(ZenRoute.STATS) },
@@ -148,6 +151,19 @@ fun ZenNavHost(
             StatsScreen(stats = stats, onBack = navController::popBackStack)
         }
 
+        composable(ZenRoute.HOME_APPS) {
+            val homeAppsViewModel: HomeAppsViewModel = viewModel(factory = factory)
+            val state by homeAppsViewModel.state.collectAsStateWithLifecycle()
+
+            HomeAppsScreen(
+                state = state,
+                onQueryChange = homeAppsViewModel::onQueryChange,
+                onAdd = homeAppsViewModel::add,
+                onRemove = homeAppsViewModel::remove,
+                onBack = navController::popBackStack,
+            )
+        }
+
         composable(ZenRoute.SETTINGS) {
             val settingsViewModel: SettingsViewModel = viewModel(factory = factory)
             val state by settingsViewModel.state.collectAsStateWithLifecycle()
@@ -157,8 +173,7 @@ fun ZenNavHost(
                 isDefaultLauncher = isDefaultLauncher,
                 doubleTapLockEnabled = doubleTapLockEnabled,
                 nowPlayingEnabled = nowPlayingEnabled,
-                onQueryChange = settingsViewModel::onQueryChange,
-                onToggleFavourite = settingsViewModel::toggleFavourite,
+                onOpenHomeApps = { navController.navigate(ZenRoute.HOME_APPS) },
                 onSetDuration = settingsViewModel::setPreferredDuration,
                 onRequestHomeRole = onRequestHomeRole,
                 onToggleDoubleTapLock = onToggleDoubleTapLock,

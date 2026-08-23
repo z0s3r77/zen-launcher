@@ -8,8 +8,8 @@ package com.zenlauncher.zen.domain.system
  * llega como gesto de atras. El usuario tiene que deslizar dos veces siempre.
  *
  * Como el sistema, ademas de sacar las barras, **entrega el mismo gesto a la
- * aplicacion** —lo mismo que pasaba en el borde inferior, ver [SwipeUpPolicy]—, Zen
- * puede reconocerlo por su cuenta y volver al primer intento. No es un apano: es la
+ * aplicacion** —lo mismo que pasaba en el borde inferior—, Zen puede reconocerlo por su
+ * cuenta y volver al primer intento. No es un apano: es la
  * unica forma de que el gesto responda cuando toca sin renunciar a ocultar las barras.
  *
  * Los dos bordes valen, cada uno hacia dentro: desde la izquierda se arrastra a la

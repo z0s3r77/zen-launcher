@@ -25,7 +25,11 @@ enum class SystemBar { STATUS, NAVIGATION }
  * al sistema. Durante una sesion, el anclado de pantalla si lo bloquea de verdad.
  *
  * Consecuencia directa: ese borde **no es de Zen**, y ningun gesto de la aplicacion
- * puede empezar ahi. Ver [SwipeUpPolicy].
+ * puede empezar ahi. La pantalla de inicio llego a abrir la lista de aplicaciones con
+ * un arrastre hacia arriba y hubo que reservarle al sistema la franja de abajo; el
+ * gesto acabo retirado entero —la lista es ahora una fila visible— y con el, esa
+ * excepcion. El unico gesto que le queda a Zen es el de volver desde un lateral, ver
+ * [EdgeBackPolicy].
  */
 object SystemBarsPolicy {
     val hidden: Set<SystemBar> = setOf(SystemBar.NAVIGATION)

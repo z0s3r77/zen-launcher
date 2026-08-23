@@ -28,22 +28,23 @@ class SettingsScreenTest {
     private var homeRoleRequests = 0
     private var doubleTapToggles = 0
     private var nowPlayingToggles = 0
+    private var homeAppsOpened = 0
     private var backs = 0
 
     private fun render(
         isDefaultLauncher: Boolean,
         doubleTapLockEnabled: Boolean = false,
         nowPlayingEnabled: Boolean = false,
+        homeAppsCount: Int = 0,
     ) {
         composeRule.setContent {
             ZenTheme {
                 SettingsScreen(
-                    state = SettingsUiState(loading = false),
+                    state = SettingsUiState(homeAppsCount = homeAppsCount, loading = false),
                     isDefaultLauncher = isDefaultLauncher,
                     doubleTapLockEnabled = doubleTapLockEnabled,
                     nowPlayingEnabled = nowPlayingEnabled,
-                    onQueryChange = {},
-                    onToggleFavourite = {},
+                    onOpenHomeApps = { homeAppsOpened++ },
                     onSetDuration = {},
                     onRequestHomeRole = { homeRoleRequests++ },
                     onToggleDoubleTapLock = { doubleTapToggles++ },
@@ -130,6 +131,22 @@ class SettingsScreenTest {
             .performClick()
 
         assertEquals(1, backs)
+    }
+
+    @Test
+    fun `elegir las aplicaciones del inicio es una fila con su cuenta, no una lista`() {
+        // Regresion: de esta pantalla colgaba la lista de TODAS las aplicaciones del
+        // telefono. Para poner el telefono en el inicio habia que reconocerlo entre
+        // doscientas filas y Ajustes no tenia final.
+        render(isDefaultLauncher = true, homeAppsCount = 3)
+
+        composeRule
+            .onNode(hasText("Aplicaciones en el Inicio") and hasText("03 / 08"))
+            .performScrollTo()
+            .assertHasClickAction()
+            .performClick()
+
+        assertEquals(1, homeAppsOpened)
     }
 
     @Test

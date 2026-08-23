@@ -2,7 +2,7 @@ package com.zenlauncher.zen.presentation.navigation
 
 /**
  * Rutas como constantes de cadena en lugar de rutas tipadas: las tipadas exigen el
- * plugin de serializacion de Kotlin, y con siete destinos sin argumentos no aporta
+ * plugin de serializacion de Kotlin, y con ocho destinos sin argumentos no aporta
  * nada que compense anadir otro plugin al build.
  */
 object ZenRoute {
@@ -12,6 +12,9 @@ object ZenRoute {
     const val RESTRICTED = "restricted"
     const val STATS = "stats"
     const val SETTINGS = "settings"
+
+    /** Elegir las aplicaciones de la reticula. Se llega desde Ajustes y desde la home. */
+    const val HOME_APPS = "home_apps"
 
     /**
      * Unica ruta con argumento: el paquete cuya marca se toco, para abrir la lista ya

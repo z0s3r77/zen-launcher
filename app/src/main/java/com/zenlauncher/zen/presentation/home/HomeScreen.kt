@@ -3,15 +3,10 @@ package com.zenlauncher.zen.presentation.home
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.foundation.gestures.awaitEachGesture
-import androidx.compose.foundation.gestures.awaitFirstDown
-import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
-import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.systemGestures
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -19,23 +14,16 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.input.pointer.PointerEventPass
-import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.unit.dp
 import com.zenlauncher.zen.R
 import com.zenlauncher.zen.domain.apps.EssentialApps
 import com.zenlauncher.zen.domain.model.InstalledApp
-import com.zenlauncher.zen.domain.system.SwipeUpPolicy
 import com.zenlauncher.zen.presentation.components.MediaTransportBar
 import com.zenlauncher.zen.presentation.components.MonoLabel
 import com.zenlauncher.zen.presentation.components.ZenAppGrid
@@ -50,12 +38,6 @@ import com.zenlauncher.zen.presentation.theme.ZenSpacing
 import com.zenlauncher.zen.presentation.theme.ZenTextStyles
 import com.zenlauncher.zen.presentation.util.ZenDateFormats
 import java.util.Locale
-
-/**
- * Recorrido minimo para que un arrastre cuente como "abrir la lista": por encima del
- * toque accidental y por debajo de lo que cansa el pulgar.
- */
-private const val SWIPE_UP_THRESHOLD_PX = 160f
 
 /**
  * Pantalla de inicio.
@@ -79,12 +61,20 @@ private const val SWIPE_UP_THRESHOLD_PX = 160f
  * arrastrarse. Se compensa acotando lo que puede crecer: la reticula nunca pasa de
  * [EssentialApps.MAX_HOME_APPS] y el menu sustituye a la pantalla en lugar de sumarse
  * a ella.
+ *
+ * **Sin gestos propios de navegacion.** Aqui no hay ningun deslizamiento que abra una
+ * pantalla: las tres filas fijas —lista completa, notas y menu— son lo que se toca. El
+ * gesto de arrastrar hacia arriba abria la lista de aplicaciones desde cualquier punto,
+ * tambien encima de la reticula y con el menu abierto, y lo que el usuario veia era una
+ * pantalla que se le iba sola. En una pantalla de inicio, lo que abre algo tiene que
+ * verse.
  */
 @Composable
 fun HomeScreen(
     state: HomeUiState,
     onLaunchApp: (InstalledApp) -> Unit,
     onOpenDrawer: () -> Unit,
+    onOpenHomeApps: () -> Unit,
     onStartSession: () -> Unit,
     onOpenRestricted: () -> Unit,
     onOpenStats: () -> Unit,
@@ -113,52 +103,8 @@ fun HomeScreen(
     // tecla o el gesto que si llega.
     BackHandler(enabled = menuOpen) { menuOpen = false }
 
-    // Deslizar hacia arriba abre la lista completa, como en cualquier launcher. Sustituye
-    // a la fila "Todas las aplicaciones", que ocupaba sitio permanente en la pantalla que
-    // mas se mira para algo que se hace de vez en cuando. La lista sigue estando ademas
-    // en el menu, para que el gesto no sea la unica via de acceso.
-    //
-    // El borde inferior es del sistema, no de Zen: ver [SwipeUpPolicy].
-    val systemEdgePx = WindowInsets.systemGestures.getBottom(LocalDensity.current).toFloat()
-    val minSystemEdgePx = with(LocalDensity.current) {
-        SwipeUpPolicy.MIN_SYSTEM_EDGE_DP.dp.toPx()
-    }
-    val systemEdge = maxOf(systemEdgePx, minSystemEdgePx)
-
-    // Donde toco el dedo de verdad. No vale el punto que da `onDragStart`: ese es donde
-    // el arrastre supero el umbral de deteccion, ya lejos del borde, y con el la franja
-    // del sistema no protegia nada. Se observa en la pasada Initial y **sin consumir**,
-    // asi que ningun otro gesto de la pantalla cambia de comportamiento.
-    val touchDownY = remember { mutableFloatStateOf(0f) }
-    val trackTouchDown = Modifier.pointerInput(Unit) {
-        awaitEachGesture {
-            val down = awaitFirstDown(requireUnconsumed = false, pass = PointerEventPass.Initial)
-            touchDownY.floatValue = down.position.y
-        }
-    }
-
-    val swipeUp = Modifier.pointerInput(onOpenDrawer, systemEdge) {
-        var accumulated = 0f
-        detectVerticalDragGestures(
-            onDragStart = { accumulated = 0f },
-            onDragEnd = {
-                val opens = SwipeUpPolicy.opensDrawer(
-                    startY = touchDownY.floatValue,
-                    height = size.height.toFloat(),
-                    systemEdge = systemEdge,
-                    dragged = accumulated,
-                    threshold = SWIPE_UP_THRESHOLD_PX,
-                )
-                if (opens) onOpenDrawer()
-            },
-        ) { change, dragAmount ->
-            accumulated += dragAmount
-            change.consume()
-        }
-    }
-
     ZenScreen(
-        modifier = modifier.then(trackTouchDown).then(swipeUp),
+        modifier = modifier,
         // Solo con el menu abierto: en la home no hay a donde volver, y un gesto que a
         // veces hace algo y a veces no es peor que uno que nunca hace nada.
         onSwipeBack = if (menuOpen) ({ menuOpen = false }) else null,
@@ -187,7 +133,6 @@ fun HomeScreen(
                 if (open) {
                     MenuBody(
                         state = state,
-                        onOpenDrawer = onOpenDrawer,
                         onStartSession = onStartSession,
                         onOpenNotifications = onOpenNotifications,
                         onOpenRestricted = onOpenRestricted,
@@ -199,8 +144,9 @@ fun HomeScreen(
                     HomeBody(
                         state = state,
                         onLaunchApp = onLaunchApp,
+                        onOpenDrawer = onOpenDrawer,
+                        onOpenHomeApps = onOpenHomeApps,
                         onStartSession = onStartSession,
-                        onOpenSettings = onOpenSettings,
                         onOpenNotifications = onOpenNotifications,
                         onPreviousTrack = onPreviousTrack,
                         onTogglePlayback = onTogglePlayback,
@@ -224,8 +170,9 @@ fun HomeScreen(
 private fun ColumnScope.HomeBody(
     state: HomeUiState,
     onLaunchApp: (InstalledApp) -> Unit,
+    onOpenDrawer: () -> Unit,
+    onOpenHomeApps: () -> Unit,
     onStartSession: () -> Unit,
-    onOpenSettings: () -> Unit,
     onOpenNotifications: (String?) -> Unit,
     onPreviousTrack: () -> Unit,
     onTogglePlayback: () -> Unit,
@@ -300,14 +247,29 @@ private fun ColumnScope.HomeBody(
     )
     ZenHairline()
 
+    // La lista completa, a la vista y pegada a la reticula: es "lo que no cabe aqui",
+    // y se lee justo despues de lo que si cabe. Estuvo escondida tras un deslizamiento
+    // hacia arriba, y ese gesto se quito: se disparaba desde cualquier punto de la
+    // pantalla de inicio —tambien con el menu abierto y sobre la propia reticula—, asi
+    // que la lista se abria sola en mitad de cualquier otra intencion. Un launcher no
+    // puede tener una puerta que se abre cuando no la tocas.
+    ZenListRow(
+        label = stringResource(R.string.home_all_apps),
+        index = "··",
+        labelColor = ZenColors.Secondary,
+        onClick = onOpenDrawer,
+    )
+    ZenHairline()
+
     // Solo si no hay nada que ensenar: mientras las esenciales resuelvan, pedir que se
-    // elijan aplicaciones seria ruido.
+    // elijan aplicaciones seria ruido. Lleva a la pantalla que solo hace eso, no a
+    // Ajustes enteros: quien acaba de instalar Zen quiere elegir, no configurar.
     if (state.homeApps.isEmpty()) {
         ZenListRow(
             label = stringResource(R.string.home_choose_apps),
             index = "··",
             labelColor = ZenColors.Disabled,
-            onClick = onOpenSettings,
+            onClick = onOpenHomeApps,
         )
         ZenHairline()
     }
@@ -334,7 +296,6 @@ private fun ColumnScope.HomeBody(
 @Composable
 private fun ColumnScope.MenuBody(
     state: HomeUiState,
-    onOpenDrawer: () -> Unit,
     onStartSession: () -> Unit,
     onOpenNotifications: (String?) -> Unit,
     onOpenRestricted: () -> Unit,
@@ -350,7 +311,6 @@ private fun ColumnScope.MenuBody(
     HomeActions(
         restrictedCount = state.restrictedCount,
         notificationTotal = state.notificationTotal,
-        onOpenDrawer = onOpenDrawer,
         onOpenNotifications = { onOpenNotifications(null) },
         onExitZen = onExitZen,
         onStartSession = onStartSession,
@@ -405,7 +365,6 @@ private fun MenuToggleRow(open: Boolean, onToggle: () -> Unit) {
 private fun HomeActions(
     restrictedCount: Int,
     notificationTotal: Int,
-    onOpenDrawer: () -> Unit,
     onOpenNotifications: () -> Unit,
     onExitZen: () -> Unit,
     onStartSession: () -> Unit,
@@ -417,14 +376,6 @@ private fun HomeActions(
     ZenListRow(
         label = stringResource(R.string.action_start_zen),
         onClick = onStartSession,
-    )
-    ZenHairline()
-    // El gesto no puede ser la unica puerta a la lista completa: un gesto que no se ve
-    // no existe para quien no lo conoce.
-    ZenListRow(
-        label = stringResource(R.string.home_all_apps),
-        labelColor = ZenColors.Secondary,
-        onClick = onOpenDrawer,
     )
     ZenHairline()
     // La via de siempre es la marca de la propia aplicacion; esta fila esta para lo que

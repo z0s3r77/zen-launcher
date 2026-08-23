@@ -37,7 +37,7 @@
     <string name="action_notifications">Notificaciones</string>
     <string name="action_restricted">Aplicaciones restringidas</string>
     <string name="action_stats">Registro</string>
-    <string name="action_settings">Ajustes</string>
+    <string name="action_settings">Ajustes Zen</string>
     <string name="action_back">Volver</string>
     <string name="action_exit_zen">Salir de Zen</string>
 
@@ -113,7 +113,7 @@
     <string name="stats_battery_notice">BATERÍA ESTIMADA A PARTIR DE %1$d SESIONES SIN CARGA. NO ES UNA MEDICIÓN ENERGÉTICA</string>
 
     <!-- Ajustes -->
-    <string name="settings_title">AJUSTES</string>
+    <string name="settings_title">AJUSTES ZEN</string>
     <string name="settings_system">SISTEMA</string>
     <string name="settings_default_launcher">Zen como pantalla de inicio</string>
     <string name="settings_default_launcher_change">Cambiar la pantalla de inicio</string>
@@ -125,9 +125,21 @@
     <string name="settings_now_playing">Información de la canción</string>
     <string name="settings_now_playing_notice">PARA VER TÍTULO, ARTISTA Y CARÁTULA, ANDROID EXIGE EL ACCESO A NOTIFICACIONES. ZEN NO LEE NINGUNA: SOLO PREGUNTA QUÉ SUENA. SIN ESTO, EL MANDO FUNCIONA IGUAL</string>
     <string name="settings_duration">DURACIÓN PREFERIDA</string>
-    <string name="settings_favourites">APLICACIONES EN EL INICIO</string>
-    <string name="settings_favourites_placeholder">Filtrar aplicaciones</string>
-    <string name="settings_favourites_notice">MÁXIMO %1$d. LAS RESTRINGIDAS NO PUEDEN ELEGIRSE</string>
+    <string name="settings_home_apps">Aplicaciones en el Inicio</string>
+
+    <!-- Aplicaciones en el Inicio -->
+    <string name="home_apps_title">EN EL INICIO</string>
+    <string name="home_apps_chosen">EN LA PANTALLA DE INICIO</string>
+    <string name="home_apps_empty">TODAVÍA NO HAS ELEGIDO NINGUNA. SE ESTÁN USANDO LAS DE POR DEFECTO</string>
+    <string name="home_apps_add">AÑADIR</string>
+    <string name="home_apps_search_placeholder">Escribe el nombre de una aplicación</string>
+    <string name="home_apps_search_hint">ESCRIBE PARA BUSCARLA. NO SE LISTAN TODAS: ELEGIR ENTRE DOSCIENTAS NO ES ELEGIR</string>
+    <string name="home_apps_no_results">NINGUNA APLICACIÓN SE LLAMA ASÍ</string>
+    <string name="home_apps_full">YA HAY %1$d. QUITA UNA PARA PODER AÑADIR OTRA</string>
+    <string name="home_apps_action_add">Añadir al inicio</string>
+    <string name="home_apps_action_remove">Quitar del inicio</string>
+    <string name="home_apps_state_chosen">QUITAR</string>
+    <string name="home_apps_notice">MÁXIMO %1$d. LAS RESTRINGIDAS NO PUEDEN ELEGIRSE</string>
 
     <!-- Bloqueo de pantalla -->
     <string name="device_admin_explanation">Permite que un doble toque en una zona vacía apague la pantalla, sin usar el botón físico. Zen no pide ninguna otra capacidad de administrador.</string>

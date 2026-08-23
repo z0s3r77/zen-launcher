@@ -36,6 +36,7 @@ class HomeScreenTest {
     val composeRule = createComposeRule()
 
     private var drawerOpened = 0
+    private var homeAppsOpened = 0
     private var settingsOpened = 0
     private var sessionsStarted = 0
     private var restrictedOpened = 0
@@ -68,6 +69,7 @@ class HomeScreenTest {
                     ),
                     onLaunchApp = { launched += it },
                     onOpenDrawer = { drawerOpened++ },
+                    onOpenHomeApps = { homeAppsOpened++ },
                     onStartSession = { sessionsStarted++ },
                     onOpenRestricted = { restrictedOpened++ },
                     onOpenStats = { statsOpened++ },
@@ -100,15 +102,12 @@ class HomeScreenTest {
         InstalledApp(packageName = pkg, label = label, componentName = "$pkg/.Main")
 
     @Test
-    fun `la lista completa ya no ocupa sitio en la home, pero sigue estando en el menu`() {
-        // Regresion doble: esta fila llevaba a Ajustes cuando no habia favoritos
-        // —dejando una instalacion recien puesta sin forma de abrir otra app— y despues
-        // ocupaba sitio permanente en la pantalla que mas se mira.
+    fun `la lista completa se abre desde la home y ya no esta en el menu`() {
+        // Estuvo en la home, luego solo en el menu y tras un deslizamiento, y ahora
+        // vuelve a la home: el gesto se disparaba solo (ver la regresion de abajo) y
+        // una puerta que se usa a diario no puede pedir dos toques.
         render(homeApps = ochoApps())
 
-        composeRule.onNodeWithText("Todas las aplicaciones").assertDoesNotExist()
-
-        composeRule.onNodeWithText("Menú").performClick()
         composeRule.onNodeWithText("Todas las aplicaciones")
             .assertIsDisplayed()
             .assertHasClickAction()
@@ -116,47 +115,48 @@ class HomeScreenTest {
 
         assertEquals(1, drawerOpened)
         assertEquals(0, settingsOpened)
+
+        // Y no se repite dentro del menu: la misma accion en dos sitios obliga a elegir.
+        composeRule.onNodeWithText("Menú").performClick()
+        composeRule.onNodeWithText("Todas las aplicaciones").assertDoesNotExist()
     }
 
     @Test
-    fun `deslizar hacia arriba abre la lista completa`() {
+    fun `deslizar hacia arriba ya no abre nada`() {
+        // Regresion: el gesto abria la lista completa desde cualquier punto de la
+        // pantalla de inicio —tambien sobre la reticula y con el menu abierto—, asi que
+        // se colaba en mitad de cualquier otra intencion y parecia que la home se iba
+        // sola. En una pantalla de inicio, lo que abre algo tiene que verse.
         render(homeApps = ochoApps())
 
         composeRule.onRoot().performTouchInput { swipeUp(startY = centerY, endY = top) }
 
-        assertEquals(1, drawerOpened)
-    }
-
-    @Test
-    fun `deslizar desde el borde inferior es del sistema, no de Zen`() {
-        // Regresion: ahi el usuario esta sacando la barra de gestos —que Zen oculta pero
-        // Android sigue entregando a la aplicacion— y la lista se abria sola cada vez.
-        // Un gesto del sistema no puede tener efectos secundarios en Zen.
-        render(homeApps = ochoApps())
-
-        composeRule.onRoot().performTouchInput { swipeUp(startY = bottom, endY = top) }
-
         assertEquals(0, drawerOpened)
     }
 
     @Test
-    fun `un roce corto no abre la lista sin querer`() {
+    fun `deslizar hacia arriba con el menu abierto tampoco`() {
+        // La otra cara de la misma regresion: el gesto vivia en la raiz de la pantalla,
+        // asi que seguia vivo con el menu delante.
         render(homeApps = ochoApps())
+        composeRule.onNodeWithText("Menú").performClick()
 
-        composeRule.onRoot().performTouchInput {
-            swipeUp(startY = centerY, endY = centerY - 40f)
-        }
+        composeRule.onRoot().performTouchInput { swipeUp(startY = centerY, endY = top) }
 
         assertEquals(0, drawerOpened)
+        composeRule.onNodeWithText("Registro").assertIsDisplayed()
     }
 
     @Test
-    fun `sin aplicaciones ofrece elegirlas`() {
+    fun `sin aplicaciones ofrece elegirlas y lleva a la pantalla que solo hace eso`() {
+        // Regresion: llevaba a Ajustes enteros, donde elegir era una lista con todas
+        // las aplicaciones del telefono colgando del final.
         render(homeApps = emptyList())
 
         composeRule.onNodeWithText("Elegir aplicaciones").performClick()
 
-        assertEquals(1, settingsOpened)
+        assertEquals(1, homeAppsOpened)
+        assertEquals(0, settingsOpened)
     }
 
     @Test
@@ -209,6 +209,25 @@ class HomeScreenTest {
         // franja de arriba, que es lo que importa: cabe el principio y cabe el final.
         composeRule.onNodeWithText("ZEN").assertIsDisplayed()
         composeRule.onNodeWithText("imagin").assertIsDisplayed()
+        // La fila que se sumo a la home con la reticula llena: si empujara algo fuera,
+        // lo primero en caerse seria lo de abajo.
+        composeRule.onNodeWithText("Todas las aplicaciones").assertIsDisplayed()
+        composeRule.onNodeWithText("Notas rápidas").assertIsDisplayed()
+        composeRule.onNodeWithText("Menú").assertIsDisplayed()
+    }
+
+    @Test
+    fun `con el mando sonando y la reticula llena sigue cabiendo todo`() {
+        // El peor caso de alto: ocho aplicaciones, el mando del reproductor abierto y la
+        // fila que se sumo a la home. Si algo se saliera, la home no se desplaza para
+        // ir a buscarlo.
+        composeRule.mainClock.autoAdvance = false
+        render(homeApps = ochoApps(), mediaPlaying = true)
+
+        composeRule.onNodeWithText("SONANDO").assertIsDisplayed()
+        composeRule.onNodeWithText("imagin").assertIsDisplayed()
+        composeRule.onNodeWithText("Todas las aplicaciones").assertIsDisplayed()
+        composeRule.onNodeWithText("Notas rápidas").assertIsDisplayed()
         composeRule.onNodeWithText("Menú").assertIsDisplayed()
     }
 
@@ -229,6 +248,7 @@ class HomeScreenTest {
 
         composeRule.onNodeWithText("ZEN").assertDoesNotExist()
         composeRule.onNodeWithText("imagin").assertDoesNotExist()
+        composeRule.onNodeWithText("Todas las aplicaciones").assertDoesNotExist()
         composeRule.onNodeWithText("Notas rápidas").assertDoesNotExist()
 
         composeRule.onNodeWithText("Menú").performClick()
@@ -245,14 +265,14 @@ class HomeScreenTest {
         composeRule.onNodeWithText("Iniciar Zen").assertDoesNotExist()
         composeRule.onNodeWithText("Aplicaciones restringidas").assertDoesNotExist()
         composeRule.onNodeWithText("Registro").assertDoesNotExist()
-        composeRule.onNodeWithText("Ajustes").assertDoesNotExist()
+        composeRule.onNodeWithText("Ajustes Zen").assertDoesNotExist()
 
         composeRule.onNodeWithText("Menú").performClick()
 
         composeRule.onNodeWithText("Iniciar Zen").assertIsDisplayed()
         composeRule.onNodeWithText("Aplicaciones restringidas").assertIsDisplayed()
         composeRule.onNodeWithText("Registro").assertIsDisplayed()
-        composeRule.onNodeWithText("Ajustes").assertIsDisplayed()
+        composeRule.onNodeWithText("Ajustes Zen").assertIsDisplayed()
     }
 
     @Test
@@ -263,7 +283,7 @@ class HomeScreenTest {
 
         composeRule.onNodeWithText("Aplicaciones restringidas").performClick()
         composeRule.onNodeWithText("Registro").performClick()
-        composeRule.onNodeWithText("Ajustes").performClick()
+        composeRule.onNodeWithText("Ajustes Zen").performClick()
         composeRule.onNodeWithText("Iniciar Zen").performClick()
 
         assertEquals(1, restrictedOpened)
