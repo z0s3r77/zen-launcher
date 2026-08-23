@@ -1,0 +1,37 @@
+{
+  "artboards": [
+    { "file": "DigitalSpec.dc.html",      "title": "01 · Digital Zen — Sistema",  "x": 0,    "y": 0,    "w": 400, "h": 880 },
+    { "file": "Main.dc.html",             "title": "01 · Launcher",               "x": 480,  "y": 0,    "w": 400, "h": 880 },
+    { "file": "DigitalSession.dc.html",   "title": "01 · Sesión Zen",             "x": 960,  "y": 0,    "w": 400, "h": 880 },
+    { "file": "DigitalApps.dc.html",      "title": "01 · Restringidas",           "x": 1440, "y": 0,    "w": 400, "h": 880 },
+    { "file": "DigitalStats.dc.html",     "title": "01 · Estadísticas",           "x": 1920, "y": 0,    "w": 400, "h": 880 },
+
+    { "file": "PaperSpec.dc.html",        "title": "02 · E-Ink — Sistema",        "x": 0,    "y": 1000, "w": 400, "h": 880 },
+    { "file": "PaperHome.dc.html",        "title": "02 · Launcher",               "x": 480,  "y": 1000, "w": 400, "h": 880 },
+    { "file": "PaperSession.dc.html",     "title": "02 · Sesión Zen",             "x": 960,  "y": 1000, "w": 400, "h": 880 },
+    { "file": "PaperApps.dc.html",        "title": "02 · Restringidas",           "x": 1440, "y": 1000, "w": 400, "h": 880 },
+    { "file": "PaperStats.dc.html",       "title": "02 · Estadísticas",           "x": 1920, "y": 1000, "w": 400, "h": 880 },
+
+    { "file": "IndustrialSpec.dc.html",   "title": "03 · Industrial — Sistema",   "x": 0,    "y": 2000, "w": 400, "h": 880 },
+    { "file": "IndustrialHome.dc.html",   "title": "03 · Launcher",               "x": 480,  "y": 2000, "w": 400, "h": 880 },
+    { "file": "IndustrialSession.dc.html","title": "03 · Sesión Zen",             "x": 960,  "y": 2000, "w": 400, "h": 880 },
+    { "file": "IndustrialApps.dc.html",   "title": "03 · Restringidas",           "x": 1440, "y": 2000, "w": 400, "h": 880 },
+    { "file": "IndustrialStats.dc.html",  "title": "03 · Estadísticas",           "x": 1920, "y": 2000, "w": 400, "h": 880 },
+
+    { "file": "MonasterySpec.dc.html",    "title": "04 · Monasterio — Sistema",   "x": 0,    "y": 3000, "w": 400, "h": 880 },
+    { "file": "MonasteryHome.dc.html",    "title": "04 · Launcher",               "x": 480,  "y": 3000, "w": 400, "h": 880 },
+    { "file": "MonasterySession.dc.html", "title": "04 · Sesión Zen",             "x": 960,  "y": 3000, "w": 400, "h": 880 },
+    { "file": "MonasteryApps.dc.html",    "title": "04 · Restringidas",           "x": 1440, "y": 3000, "w": 400, "h": 880 },
+    { "file": "MonasteryStats.dc.html",   "title": "04 · Estadísticas",           "x": 1920, "y": 3000, "w": 400, "h": 880 },
+
+    { "file": "TerminalSpec.dc.html",     "title": "05 · Terminal — Sistema",     "x": 0,    "y": 4000, "w": 400, "h": 880 },
+    { "file": "TerminalHome.dc.html",     "title": "05 · Launcher",               "x": 480,  "y": 4000, "w": 400, "h": 880 },
+    { "file": "TerminalSession.dc.html",  "title": "05 · Sesión Zen",             "x": 960,  "y": 4000, "w": 400, "h": 880 },
+    { "file": "TerminalApps.dc.html",     "title": "05 · Restringidas",           "x": 1440, "y": 4000, "w": 400, "h": 880 },
+    { "file": "TerminalStats.dc.html",    "title": "05 · Estadísticas",           "x": 1920, "y": 4000, "w": 400, "h": 880 }
+  ],
+  "annotations": [
+    { "id": "lectura", "x": -520, "y": 0, "w": 400, "text": "Cada FILA es una dirección visual completa.\nCada COLUMNA compara la misma pantalla entre las cinco.\n\nLa primera columna es la ficha de sistema: tipografía, grises, espaciado e iconos, escrita en el propio lenguaje de esa dirección.\n\nPantallas a 400 × 880 (dp del Phone 2a). No se dibuja la barra de estado del sistema: ese espacio se deja libre arriba." }
+  ],
+  "launch": { "view": "canvas" }
+}

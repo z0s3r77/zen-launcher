@@ -1,3 +1,154 @@
 <resources>
-    <string name="app_name">zen</string>
+    <string name="app_name">Zen</string>
+
+    <!-- Notificaciones -->
+    <string name="notification_channel_session">Fin de sesión</string>
+    <string name="notification_channel_session_description">Un único aviso silencioso cuando termina una sesión Zen.</string>
+    <string name="notification_session_completed">Sesión completada</string>
+    <string name="notification_session_ended">Sesión terminada</string>
+
+    <!-- Launcher -->
+    <string name="home_header_idle">SIN SESIÓN</string>
+    <string name="home_all_apps">Todas las aplicaciones</string>
+    <string name="home_choose_apps">Elegir aplicaciones</string>
+    <string name="home_essentials">ESENCIALES</string>
+    <string name="home_zen_button">ZEN</string>
+    <string name="home_zen_button_label">Iniciar una sesión Zen</string>
+    <string name="home_menu">Menú</string>
+    <string name="home_menu_section">MENÚ</string>
+    <string name="home_notes">Notas rápidas</string>
+    <string name="home_notes_soon">PRONTO</string>
+
+    <string name="home_menu_show">ABRIR</string>
+    <string name="home_menu_hide">CERRAR</string>
+
+    <!-- Reproductor -->
+    <string name="media_title">REPRODUCTOR</string>
+    <string name="media_state_playing">SONANDO</string>
+    <string name="media_state_paused">EN PAUSA</string>
+    <string name="media_previous">Canción anterior</string>
+    <string name="media_play">Reproducir</string>
+    <string name="media_pause">Pausar</string>
+    <string name="media_next">Canción siguiente</string>
+    <string name="media_open_player">Abrir el reproductor</string>
+
+    <!-- Acciones -->
+    <string name="action_start_zen">Iniciar Zen</string>
+    <string name="action_notifications">Notificaciones</string>
+    <string name="action_restricted">Aplicaciones restringidas</string>
+    <string name="action_stats">Registro</string>
+    <string name="action_settings">Ajustes</string>
+    <string name="action_back">Volver</string>
+    <string name="action_exit_zen">Salir de Zen</string>
+
+    <!-- Notificaciones -->
+    <string name="notifications_title">NOTIFICACIONES</string>
+    <string name="notifications_empty">NADA PENDIENTE</string>
+    <string name="notifications_no_access">PARA VER LAS NOTIFICACIONES, ANDROID EXIGE EL MISMO ACCESO QUE LA INFORMACIÓN DE LA CANCIÓN. NO SE PIDE NINGÚN PERMISO NUEVO Y NADA SALE DEL DISPOSITIVO</string>
+    <string name="notifications_grant">Conceder el acceso</string>
+
+    <!-- Lista de aplicaciones -->
+    <string name="drawer_title">APLICACIONES</string>
+    <string name="drawer_search_placeholder">Buscar</string>
+    <string name="drawer_hidden_notice">%1$d OCULTAS POR RESTRICCIÓN</string>
+
+    <!-- Aplicaciones restringidas -->
+    <string name="restricted_title">RESTRINGIDAS</string>
+    <string name="restricted_search_placeholder">Filtrar aplicaciones</string>
+    <string name="restricted_state_blocked">BLOQUEADA</string>
+    <string name="restricted_state_free">LIBRE</string>
+    <string name="restricted_action_block">Restringir</string>
+    <string name="restricted_action_allow">Permitir</string>
+    <string name="restricted_v01_notice">EN v0.1 SE OCULTAN DE ZEN; EL SISTEMA NO IMPIDE ABRIRLAS</string>
+
+    <!-- Sesion -->
+    <string name="session_header_active">ZEN / ACTIVO</string>
+    <string name="session_header_planned">%1$d MIN</string>
+    <string name="session_remaining">RESTANTE</string>
+    <string name="session_elapsed">TRANSCURRIDO</string>
+    <string name="session_battery">BATERÍA</string>
+    <string name="session_started">INICIO</string>
+    <string name="session_blocked">RESTRINGIDAS</string>
+    <string name="session_finish">TERMINAR SESIÓN</string>
+    <string name="session_clock_anomaly">LA HORA DEL SISTEMA CAMBIÓ; SE USA EL RELOJ MONÓTONO</string>
+    <string name="session_finish_confirm_title">¿Terminar la sesión?</string>
+    <string name="session_finish_confirm_body">Llevas %1$s. Quedará registrada como abandonada.</string>
+    <string name="session_finish_confirm_yes">TERMINAR</string>
+    <string name="session_finish_confirm_no">SEGUIR</string>
+
+    <!-- Configuracion de sesion -->
+    <string name="setup_title">INICIAR ZEN</string>
+    <string name="setup_header_minutes">MINUTOS</string>
+    <string name="setup_custom">DURACIÓN PERSONALIZADA</string>
+    <string name="setup_custom_placeholder">Entre %1$d y %2$d minutos</string>
+    <string name="setup_start_custom">Iniciar con esa duración</string>
+    <string name="setup_notice">EL TIEMPO SE CALCULA CON MARCAS DE TIEMPO: CERRAR ZEN NO LO DETIENE</string>
+
+    <!-- Resumen -->
+    <string name="summary_title">RESUMEN</string>
+    <string name="summary_completed">COMPLETADA</string>
+    <string name="summary_abandoned">ABANDONADA</string>
+    <string name="summary_actual_duration">DURACIÓN REAL</string>
+    <string name="summary_planned">PLANIFICADA</string>
+    <string name="summary_started">INICIO</string>
+    <string name="summary_ended">FIN</string>
+    <string name="summary_battery">BATERÍA</string>
+    <string name="summary_battery_value">%1$d%%</string>
+    <string name="summary_battery_unavailable">SIN MEDIDA</string>
+    <string name="summary_blocked">RESTRINGIDAS</string>
+    <string name="summary_back">Volver al inicio</string>
+
+    <!-- Registro -->
+    <string name="stats_title">REGISTRO</string>
+    <string name="stats_empty">TODAVÍA NO HAY SESIONES</string>
+    <string name="stats_total_time">TIEMPO EN ZEN</string>
+    <string name="stats_completed">COMPLETADAS</string>
+    <string name="stats_abandoned">ABANDONADAS</string>
+    <string name="stats_battery">BATERÍA</string>
+    <string name="stats_battery_value">%1$d%%</string>
+    <string name="stats_battery_unavailable">—</string>
+    <string name="stats_longest">MÁS LARGA</string>
+    <string name="stats_average">MEDIA</string>
+    <string name="stats_completion_rate">TASA DE COMPLETADAS</string>
+    <string name="stats_battery_notice">BATERÍA ESTIMADA A PARTIR DE %1$d SESIONES SIN CARGA. NO ES UNA MEDICIÓN ENERGÉTICA</string>
+
+    <!-- Ajustes -->
+    <string name="settings_title">AJUSTES</string>
+    <string name="settings_system">SISTEMA</string>
+    <string name="settings_default_launcher">Zen como pantalla de inicio</string>
+    <string name="settings_default_launcher_change">Cambiar la pantalla de inicio</string>
+    <string name="settings_battery_saver">Ahorro de batería</string>
+    <string name="settings_greyscale">Escala de grises del sistema</string>
+    <string name="settings_state_active">ACTIVO</string>
+    <string name="settings_state_inactive">INACTIVO</string>
+    <string name="settings_system_notice">ANDROID NO PERMITE A UNA APP NORMAL CAMBIAR ESTOS DOS AJUSTES; ZEN SOLO ABRE LA PANTALLA CORRESPONDIENTE</string>
+    <string name="settings_now_playing">Información de la canción</string>
+    <string name="settings_now_playing_notice">PARA VER TÍTULO, ARTISTA Y CARÁTULA, ANDROID EXIGE EL ACCESO A NOTIFICACIONES. ZEN NO LEE NINGUNA: SOLO PREGUNTA QUÉ SUENA. SIN ESTO, EL MANDO FUNCIONA IGUAL</string>
+    <string name="settings_duration">DURACIÓN PREFERIDA</string>
+    <string name="settings_favourites">APLICACIONES EN EL INICIO</string>
+    <string name="settings_favourites_placeholder">Filtrar aplicaciones</string>
+    <string name="settings_favourites_notice">MÁXIMO %1$d. LAS RESTRINGIDAS NO PUEDEN ELEGIRSE</string>
+
+    <!-- Bloqueo de pantalla -->
+    <string name="device_admin_explanation">Permite que un doble toque en una zona vacía apague la pantalla, sin usar el botón físico. Zen no pide ninguna otra capacidad de administrador.</string>
+    <string name="settings_double_tap_lock">Doble toque para bloquear</string>
+    <string name="settings_double_tap_lock_notice">SOLO SIRVE PARA APAGAR LA PANTALLA. SE REVOCA DESDE AJUSTES DE ANDROID CUANDO QUIERAS</string>
+
+    <!-- Sesión: modo anclado -->
+    <string name="session_pinned">PANTALLA ANCLADA</string>
+    <string name="session_pinned_exit">PARA SALIR ANTES DE TIEMPO, MANTÉN ATRÁS Y RECIENTES A LA VEZ</string>
+
+    <!-- Errores -->
+    <string name="error_no_settings_screen">Este dispositivo no ofrece esa pantalla de ajustes</string>
+
+    <!-- Plurales: con una duracion personalizada de 1 minuto, "1 minutos" seria incorrecto -->
+    <plurals name="home_notifications_badge">
+        <item quantity="one">%1$d notificación de %2$s</item>
+        <item quantity="other">%1$d notificaciones de %2$s</item>
+    </plurals>
+
+    <plurals name="setup_minutes">
+        <item quantity="one">%1$d minuto</item>
+        <item quantity="other">%1$d minutos</item>
+    </plurals>
 </resources>

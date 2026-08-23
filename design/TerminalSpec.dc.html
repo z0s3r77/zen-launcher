@@ -1,0 +1,53 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400&family=IBM+Plex+Sans:wght@200;300;400&display=swap">
+  <style>
+    body { margin: 0; background: #0D0E0E; }
+    a { color: #63676A; text-decoration: none; }
+    a:hover { color: #D5D7D4; }
+  </style>
+</helmet>
+<div style="width: 400px; height: 880px; box-sizing: border-box; background: #0D0E0E; color: #D5D7D4; font-family: 'IBM Plex Sans', system-ui, sans-serif; display: flex; flex-direction: column; gap: 28px; padding: 52px 28px 40px;">
+  <div style="display: flex; flex-direction: column; gap: 10px;">
+    <div style="font-family: 'IBM Plex Mono', monospace; font-size: 11px; letter-spacing: 0.06em; color: #4E5254;">05</div>
+    <div style="font-size: 31px; font-weight: 200; letter-spacing: -0.03em; line-height: 1;">Terminal</div>
+    <div style="font-size: 14px; font-weight: 300; line-height: 1.6; color: #83878A; text-wrap: pretty;">La lógica de una línea de comandos sin su nostalgia: minúsculas, respuestas exactas y ningún adorno. Se opera, no se navega.</div>
+  </div>
+  <div style="display: flex; flex-direction: column; gap: 10px;">
+    <div style="font-family: 'IBM Plex Mono', monospace; font-size: 11px; letter-spacing: 0.06em; color: #4E5254;">tipografía</div>
+    <div style="font-size: 40px; font-weight: 200; letter-spacing: -0.045em; line-height: 1; font-variant-numeric: tabular-nums;">16:42</div>
+    <div style="font-size: 13px; font-weight: 300; line-height: 1.6; color: #83878A;">IBM Plex Sans 200 / 300 — reloj y nombres<br>IBM Plex Mono 300 / 400 — solo datos y estado<br>Reloj 72 · Lista 24 · Mono 11–15 · todo en minúscula</div>
+  </div>
+  <div style="display: flex; flex-direction: column; gap: 10px;">
+    <div style="font-family: 'IBM Plex Mono', monospace; font-size: 11px; letter-spacing: 0.06em; color: #4E5254;">color</div>
+    <div style="display: flex; gap: 6px;">
+      <div style="flex-grow: 1; height: 42px; background: #0D0E0E; border: 1px solid #1D1F20; box-sizing: border-box;"></div>
+      <div style="flex-grow: 1; height: 42px; background: #2C3032;"></div>
+      <div style="flex-grow: 1; height: 42px; background: #4E5254;"></div>
+      <div style="flex-grow: 1; height: 42px; background: #83878A;"></div>
+      <div style="flex-grow: 1; height: 42px; background: #E4E6E3;"></div>
+    </div>
+    <div style="font-size: 13px; font-weight: 300; line-height: 1.6; color: #83878A;">Grises fríos, sin verde fósforo ni acento alguno. Monocromo estricto.</div>
+  </div>
+  <div style="display: flex; flex-direction: column; gap: 10px;">
+    <div style="font-family: 'IBM Plex Mono', monospace; font-size: 11px; letter-spacing: 0.06em; color: #4E5254;">espaciado e iconos</div>
+    <div style="font-size: 13px; font-weight: 300; line-height: 1.6; color: #83878A;">Base 2 · Márgenes 28 / 62 / 46<br>Fila 58–60 · Sin filetes: alinea la columna mono<br>Iconos: ninguno; los signos &gt; [x] [ ] son texto</div>
+  </div>
+  <div style="flex-grow: 1;"></div>
+  <div style="font-size: 13px; font-weight: 300; line-height: 1.6; color: #6E7275; text-wrap: pretty;">Responde exactamente lo que se le pregunta y nada más. No hay nada que explorar.</div>
+</div>
+</x-dc>
+<script data-dc-script data-props='{"$preview":{"width":400,"height":880}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

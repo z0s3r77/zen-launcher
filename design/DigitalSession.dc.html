@@ -1,0 +1,34 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Sora:wght@200;300;400&display=swap">
+  <style>
+    body { margin: 0; background: #0B0B0C; }
+    a { color: #8C8C88; text-decoration: none; }
+    a:hover { color: #F2F1EE; }
+  </style>
+</helmet>
+<div style="width: 400px; height: 880px; box-sizing: border-box; background: #0B0B0C; color: #F2F1EE; font-family: 'Sora', system-ui, sans-serif; display: flex; flex-direction: column; align-items: center; padding: 68px 30px 46px;">
+  <div style="font-size: 11px; font-weight: 400; letter-spacing: 0.46em; color: #45454A; padding-left: 0.46em;">ZEN</div>
+  <div style="flex-grow: 1;"></div>
+  <div style="display: flex; flex-direction: column; align-items: center; gap: 26px;">
+    <div style="font-size: 92px; font-weight: 200; line-height: 0.88; letter-spacing: -0.05em; font-variant-numeric: tabular-nums; color: #D9D8D4;">47:12</div>
+    <div style="font-size: 12px; font-weight: 400; letter-spacing: 0.24em; color: #3C3C40;">84%</div>
+  </div>
+  <div style="flex-grow: 1.4;"></div>
+  <div style="font-size: 11px; font-weight: 300; letter-spacing: 0.14em; color: #2C2C2F;">MANTÉN PULSADO PARA SALIR</div>
+</div>
+</x-dc>
+<script data-dc-script data-props='{"$preview":{"width":400,"height":880}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

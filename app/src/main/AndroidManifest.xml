@@ -1,8 +1,38 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:tools="http://schemas.android.com/tools">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!--
+      Solo dos permisos, ambos ligados a la unica funcion que los necesita: avisar de
+      que la sesion ha terminado. Los dos degradan solos si no se conceden.
+    -->
+
+    <!-- Aviso silencioso al terminar la sesion. Se pide en tiempo de ejecucion. -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+
+    <!--
+      Disparar exactamente a T=0.
+
+      USE_EXACT_ALARM y no SCHEDULE_EXACT_ALARM: el segundo esta denegado por defecto
+      desde Android 14 y obliga al usuario a concederlo a mano en Ajustes; comprobado
+      en dispositivo, la alarma caia a inexacta con una ventana de ~45 s. USE_EXACT_ALARM
+      se concede en la instalacion y esta reservado a aplicaciones cuya funcion principal
+      es una alarma o un temporizador, que es exactamente el caso de Zen.
+    -->
+    <uses-permission android:name="android.permission.USE_EXACT_ALARM" />
+
+    <!--
+      Visibilidad de paquetes para un launcher: basta declarar el intent de actividades
+      lanzables. NO se pide QUERY_ALL_PACKAGES, que seria desproporcionado.
+    -->
+    <queries>
+        <intent>
+            <action android:name="android.intent.action.MAIN" />
+            <category android:name="android.intent.category.LAUNCHER" />
+        </intent>
+    </queries>
 
     <application
+        android:name=".ZenApplication"
         android:allowBackup="true"
         android:dataExtractionRules="@xml/data_extraction_rules"
         android:fullBackupContent="@xml/backup_rules"
@@ -10,6 +40,79 @@
         android:label="@string/app_name"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
-        android:theme="@style/Theme.Zen" />
+        android:theme="@style/Theme.Zen">
+
+        <!--
+          launchMode singleTask + stateNotNeeded es la configuracion habitual de una
+          home app: el sistema puede arrancarla sin estado guardado porque todo el
+          estado de Zen esta persistido (DataStore + SQLite), no en el bundle.
+        -->
+        <activity
+            android:name=".presentation.ZenActivity"
+            android:exported="true"
+            android:launchMode="singleTask"
+            android:stateNotNeeded="true"
+            android:windowSoftInputMode="adjustResize"
+            android:theme="@style/Theme.Zen">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <!-- HOME la hace elegible como launcher... -->
+                <category android:name="android.intent.category.HOME" />
+                <!-- ...y LAUNCHER permite abrirla como app normal antes de serlo. -->
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+        <!--
+          Administrador de dispositivos con una unica politica declarada, force-lock,
+          para poder apagar la pantalla con un doble toque sin usar el boton fisico.
+
+          NO es Device Owner: se concede con un dialogo normal del sistema y el usuario
+          lo revoca cuando quiera desde Ajustes de Android. No se declara ninguna otra
+          politica: ni contrasenas, ni camara, ni borrado del dispositivo.
+        -->
+        <receiver
+            android:name=".system.ZenDeviceAdminReceiver"
+            android:exported="true"
+            android:permission="android.permission.BIND_DEVICE_ADMIN">
+            <meta-data
+                android:name="android.app.device_admin"
+                android:resource="@xml/device_admin" />
+            <intent-filter>
+                <action android:name="android.app.action.DEVICE_ADMIN_ENABLED" />
+            </intent-filter>
+        </receiver>
+
+        <!--
+          Oyente de notificaciones, para dos cosas: los metadatos de la sesion de medios
+          activa (getActiveSessions exige el nombre de un oyente habilitado como prueba
+          de la concesion) y las marcas de aviso de la pantalla de inicio.
+
+          El acceso es OPCIONAL y lo concede el usuario a mano en Ajustes de Android;
+          sin el, el mando del reproductor sigue funcionando con teclas de medios y las
+          marcas simplemente no aparecen. Lo que se lee no sale del dispositivo, no se
+          guarda en disco y nada interrumpe: el numero espera quieto en la pantalla de
+          inicio. Ver ZenNotificationListener.
+        -->
+        <service
+            android:name=".system.ZenNotificationListener"
+            android:exported="true"
+            android:label="@string/app_name"
+            android:permission="android.permission.BIND_NOTIFICATION_LISTENER_SERVICE">
+            <intent-filter>
+                <action android:name="android.service.notification.NotificationListenerService" />
+            </intent-filter>
+        </service>
+
+        <!-- Interno: solo lo despierta nuestra propia alarma. -->
+        <receiver
+            android:name=".system.SessionEndReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="com.zenlauncher.zen.action.SESSION_END" />
+            </intent-filter>
+        </receiver>
+    </application>
 
 </manifest>

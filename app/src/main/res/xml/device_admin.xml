@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Una unica politica: force-lock, para poder apagar la pantalla con un doble toque.
+  No se declara ninguna otra: ni cambiar contrasenas, ni deshabilitar la camara, ni
+  borrar el dispositivo.
+-->
+<device-admin xmlns:android="http://schemas.android.com/apk/res/android">
+    <uses-policies>
+        <force-lock />
+    </uses-policies>
+</device-admin>

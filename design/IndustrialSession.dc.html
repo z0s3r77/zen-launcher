@@ -1,0 +1,55 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600&family=DM+Mono:wght@300;400;500&display=swap">
+  <style>
+    body { margin: 0; background: #0A0A0B; }
+    a { color: #75757A; text-decoration: none; }
+    a:hover { color: #EAEAE7; }
+  </style>
+</helmet>
+<div style="width: 400px; height: 880px; box-sizing: border-box; background: #0A0A0B; color: #EAEAE7; font-family: 'Archivo', system-ui, sans-serif; display: flex; flex-direction: column; padding: 60px 26px 44px;">
+  <div style="display: flex; align-items: center; justify-content: space-between; gap: 16px; padding-bottom: 12px; border-bottom: 1px solid #232326;">
+    <div style="display: flex; align-items: center; gap: 8px;">
+      <div style="width: 6px; height: 6px; background: #B8894A;"></div>
+      <div style="font-family: 'DM Mono', monospace; font-size: 10px; font-weight: 400; letter-spacing: 0.28em; color: #EAEAE7;">ZEN / ACTIVO</div>
+    </div>
+    <div style="font-family: 'DM Mono', monospace; font-size: 10px; font-weight: 400; letter-spacing: 0.28em; color: #75757A;">S-09</div>
+  </div>
+  <div style="flex-grow: 1;"></div>
+  <div style="display: flex; flex-direction: column; gap: 20px;">
+    <div style="font-family: 'DM Mono', monospace; font-size: 10px; font-weight: 400; letter-spacing: 0.28em; color: #56565B;">TRANSCURRIDO</div>
+    <div style="font-family: 'DM Mono', monospace; font-size: 70px; font-weight: 300; line-height: 0.9; letter-spacing: -0.04em; color: #D5D5D2;">47:12</div>
+  </div>
+  <div style="flex-grow: 1.2;"></div>
+  <div style="display: flex; flex-direction: column;">
+    <div style="display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 15px 0; border-top: 1px solid #1B1B1E;">
+      <div style="font-family: 'DM Mono', monospace; font-size: 11px; letter-spacing: 0.16em; color: #56565B;">BATERÍA</div>
+      <div style="font-family: 'DM Mono', monospace; font-size: 11px; letter-spacing: 0.16em; color: #8A8A8F;">84%</div>
+    </div>
+    <div style="display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 15px 0; border-top: 1px solid #1B1B1E;">
+      <div style="font-family: 'DM Mono', monospace; font-size: 11px; letter-spacing: 0.16em; color: #56565B;">INICIO</div>
+      <div style="font-family: 'DM Mono', monospace; font-size: 11px; letter-spacing: 0.16em; color: #8A8A8F;">15:55</div>
+    </div>
+    <div style="display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 15px 0; border-top: 1px solid #1B1B1E; border-bottom: 1px solid #1B1B1E;">
+      <div style="font-family: 'DM Mono', monospace; font-size: 11px; letter-spacing: 0.16em; color: #56565B;">BLOQUEADAS</div>
+      <div style="font-family: 'DM Mono', monospace; font-size: 11px; letter-spacing: 0.16em; color: #8A8A8F;">04</div>
+    </div>
+  </div>
+  <div style="height: 26px;"></div>
+  <div style="font-family: 'DM Mono', monospace; font-size: 10px; letter-spacing: 0.2em; color: #303034;">MANTÉN 3 S PARA TERMINAR</div>
+</div>
+</x-dc>
+<script data-dc-script data-props='{"$preview":{"width":400,"height":880}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>
