@@ -3,6 +3,7 @@ package com.zenlauncher.zen.ui
 import androidx.compose.ui.test.assertHasClickAction
 import androidx.compose.ui.test.assertHasNoClickAction
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
@@ -19,6 +20,7 @@ import com.zenlauncher.zen.presentation.home.menuLabelColor
 import com.zenlauncher.zen.presentation.theme.ZenColors
 import com.zenlauncher.zen.presentation.theme.ZenTheme
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -37,8 +39,10 @@ class HomeScreenTest {
 
     private var drawerOpened = 0
     private var homeAppsOpened = 0
+    private var notesOpened = 0
     private var settingsOpened = 0
     private var sessionsStarted = 0
+    private var breathsOpened = 0
     private var restrictedOpened = 0
     private var statsOpened = 0
     private val launched = mutableListOf<InstalledApp>()
@@ -70,7 +74,9 @@ class HomeScreenTest {
                     onLaunchApp = { launched += it },
                     onOpenDrawer = { drawerOpened++ },
                     onOpenHomeApps = { homeAppsOpened++ },
+                    onOpenNotes = { notesOpened++ },
                     onStartSession = { sessionsStarted++ },
+                    onBreathe = { breathsOpened++ },
                     onOpenRestricted = { restrictedOpened++ },
                     onOpenStats = { statsOpened++ },
                     onOpenSettings = { settingsOpened++ },
@@ -122,6 +128,38 @@ class HomeScreenTest {
     }
 
     @Test
+    fun `respirar tiene boton propio bajo ZEN y no baja al menu`() {
+        // Las dos cosas que Zen sabe hacer por si mismo —una sesion y un minuto de
+        // respiracion— son las dos unicas con boton propio. Respirar en el menu seria
+        // esconder tras dos toques justo lo que se busca cuando uno esta agitado.
+        render(homeApps = ochoApps())
+
+        composeRule.onNodeWithText("RESPIRA")
+            .assertIsDisplayed()
+            .assertHasClickAction()
+            .performClick()
+
+        assertEquals(1, breathsOpened)
+        // Y no arranca una sesion por error: son dos botones pegados.
+        assertEquals(0, sessionsStarted)
+
+        composeRule.onNodeWithText("Menú").performClick()
+        composeRule.onNodeWithText("RESPIRA").assertDoesNotExist()
+    }
+
+    @Test
+    fun `el boton ZEN sigue siendo el de arriba`() {
+        // Regresion: los dos botones comparten sitio y estilo, asi que el orden es lo
+        // unico que los distingue de un vistazo. ZEN arriba, pegado a la hora.
+        render(homeApps = ochoApps())
+
+        val zen = composeRule.onNodeWithText("ZEN").getUnclippedBoundsInRoot()
+        val respira = composeRule.onNodeWithText("RESPIRA").getUnclippedBoundsInRoot()
+
+        assertTrue("ZEN debe quedar encima de RESPIRA", zen.top < respira.top)
+    }
+
+    @Test
     fun `deslizar hacia arriba ya no abre nada`() {
         // Regresion: el gesto abria la lista completa desde cualquier punto de la
         // pantalla de inicio —tambien sobre la reticula y con el menu abierto—, asi que
@@ -168,12 +206,15 @@ class HomeScreenTest {
 
     @Test
     fun `las aplicaciones de la reticula se abren al tocarlas`() {
-        val notes = app("com.notes", "Notas")
-        render(homeApps = listOf(app("com.phone", "Teléfono"), notes))
+        // La aplicacion de ejemplo no puede llamarse "Notas": desde que la fila
+        // permanente lleva ese nombre, buscar ese texto encontraria dos nodos y el
+        // test no estaria comprobando la reticula sino su propio dato.
+        val correo = app("com.mail", "Correo")
+        render(homeApps = listOf(app("com.phone", "Teléfono"), correo))
 
-        composeRule.onNodeWithText("Notas").performClick()
+        composeRule.onNodeWithText("Correo").performClick()
 
-        assertEquals(listOf(notes), launched)
+        assertEquals(listOf(correo), launched)
     }
 
     @Test
@@ -212,7 +253,7 @@ class HomeScreenTest {
         // La fila que se sumo a la home con la reticula llena: si empujara algo fuera,
         // lo primero en caerse seria lo de abajo.
         composeRule.onNodeWithText("Todas las aplicaciones").assertIsDisplayed()
-        composeRule.onNodeWithText("Notas rápidas").assertIsDisplayed()
+        composeRule.onNodeWithText("Notas").assertIsDisplayed()
         composeRule.onNodeWithText("Menú").assertIsDisplayed()
     }
 
@@ -227,7 +268,7 @@ class HomeScreenTest {
         composeRule.onNodeWithText("SONANDO").assertIsDisplayed()
         composeRule.onNodeWithText("imagin").assertIsDisplayed()
         composeRule.onNodeWithText("Todas las aplicaciones").assertIsDisplayed()
-        composeRule.onNodeWithText("Notas rápidas").assertIsDisplayed()
+        composeRule.onNodeWithText("Notas").assertIsDisplayed()
         composeRule.onNodeWithText("Menú").assertIsDisplayed()
     }
 
@@ -249,7 +290,7 @@ class HomeScreenTest {
         composeRule.onNodeWithText("ZEN").assertDoesNotExist()
         composeRule.onNodeWithText("imagin").assertDoesNotExist()
         composeRule.onNodeWithText("Todas las aplicaciones").assertDoesNotExist()
-        composeRule.onNodeWithText("Notas rápidas").assertDoesNotExist()
+        composeRule.onNodeWithText("Notas").assertDoesNotExist()
 
         composeRule.onNodeWithText("Menú").performClick()
 
@@ -480,13 +521,16 @@ class HomeScreenTest {
     }
 
     @Test
-    fun `las notas rapidas tienen su sitio y dicen que todavia no estan`() {
-        // No es pulsable a proposito: una fila que se traga el toque en silencio ensena
-        // a desconfiar de las que si funcionan.
+    fun `la fila de notas lleva a las notas`() {
+        // Estuvo marcada PRONTO y sin reaccionar al toque mientras no existia: una fila
+        // que se traga el toque en silencio ensena a desconfiar de las que si funcionan.
+        // Ahora lleva a alguna parte, asi que se toca y ya no queda ni rastro del aviso.
         render(homeApps = listOf(app("com.phone", "Teléfono")))
 
-        composeRule.onNodeWithText("Notas rápidas").assertIsDisplayed().assertHasNoClickAction()
-        composeRule.onNodeWithText("PRONTO").assertIsDisplayed()
+        composeRule.onNodeWithText("PRONTO").assertDoesNotExist()
+        composeRule.onNodeWithText("Notas").assertIsDisplayed().assertHasClickAction().performClick()
+
+        assertEquals(1, notesOpened)
     }
 
     @Test

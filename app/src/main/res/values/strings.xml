@@ -14,10 +14,11 @@
     <string name="home_essentials">ESENCIALES</string>
     <string name="home_zen_button">ZEN</string>
     <string name="home_zen_button_label">Iniciar una sesión Zen</string>
+    <string name="home_breathe_button">RESPIRA</string>
+    <string name="home_breathe_button_label">Respirar guiado durante un minuto</string>
     <string name="home_menu">Menú</string>
     <string name="home_menu_section">MENÚ</string>
-    <string name="home_notes">Notas rápidas</string>
-    <string name="home_notes_soon">PRONTO</string>
+    <string name="home_notes">Notas</string>
 
     <string name="home_menu_show">ABRIR</string>
     <string name="home_menu_hide">CERRAR</string>
@@ -46,6 +47,40 @@
     <string name="notifications_empty">NADA PENDIENTE</string>
     <string name="notifications_no_access">PARA VER LAS NOTIFICACIONES, ANDROID EXIGE EL MISMO ACCESO QUE LA INFORMACIÓN DE LA CANCIÓN. NO SE PIDE NINGÚN PERMISO NUEVO Y NADA SALE DEL DISPOSITIVO</string>
     <string name="notifications_grant">Conceder el acceso</string>
+
+    <!-- Notas -->
+    <string name="notes_title">NOTAS</string>
+    <string name="notes_quick">Nota rápida</string>
+    <string name="notes_quick_label">Capturar una idea ahora</string>
+    <string name="notes_search_placeholder">Buscar en las notas</string>
+    <string name="notes_recent">IDEAS RECIENTES</string>
+    <string name="notes_results">RESULTADOS</string>
+    <string name="notes_empty">TODAVÍA NO HAY NOTAS</string>
+    <string name="notes_no_results">NADA CON ESAS PALABRAS</string>
+    <string name="notes_related">TAMBIÉN RELACIONADAS</string>
+    <string name="notes_suggestions">POSIBLES CONEXIONES</string>
+
+    <!-- Nota rápida -->
+    <string name="quick_note_title">NOTA RÁPIDA</string>
+    <string name="quick_note_placeholder">Escribe o dicta la idea</string>
+    <string name="quick_note_save">Guardar</string>
+    <string name="quick_note_image">Añadir una imagen</string>
+    <string name="quick_note_dictate">Dictar</string>
+    <string name="quick_note_dictate_stop">Dejar de dictar</string>
+    <string name="quick_note_listening">ESCUCHANDO</string>
+    <string name="quick_note_mic_denied">SIN MICRÓFONO</string>
+    <string name="quick_note_images">%1$d ADJUNTAS</string>
+
+    <!-- Una nota -->
+    <string name="note_title">NOTA</string>
+    <string name="note_delete">Borrar la nota</string>
+    <string name="note_tags">ETIQUETAS</string>
+    <string name="note_links">ENLACES</string>
+    <string name="note_connections">CONECTADA CON</string>
+    <string name="note_suggestions">¿SE PARECE A ESTAS?</string>
+    <string name="note_connect">Conectar</string>
+    <string name="note_ignore">Ignorar</string>
+    <string name="note_open_link">Abrir el enlace</string>
 
     <!-- Lista de aplicaciones -->
     <string name="drawer_title">APLICACIONES</string>
@@ -149,6 +184,22 @@
     <!-- Sesión: modo anclado -->
     <string name="session_pinned">PANTALLA ANCLADA</string>
     <string name="session_pinned_exit">PARA SALIR ANTES DE TIEMPO, MANTÉN ATRÁS Y RECIENTES A LA VEZ</string>
+
+    <!-- Respiración guiada -->
+    <string name="breathe_title">RESPIRA</string>
+    <string name="breathe_header_rate">%1$d POR MINUTO</string>
+    <string name="breathe_header_cycle">CICLO %1$d / %2$d</string>
+    <string name="breathe_ready">Preparado</string>
+    <string name="breathe_inhale">Inspira</string>
+    <string name="breathe_exhale">Espira</string>
+    <string name="breathe_done">Hecho</string>
+    <string name="breathe_remaining">RESTANTE</string>
+    <string name="breathe_seconds">%1$02d S</string>
+    <string name="breathe_start">Empezar</string>
+    <string name="breathe_stop">Detener</string>
+    <string name="breathe_again">Otra vez</string>
+    <string name="breathe_notice_rhythm">CUATRO SEGUNDOS DENTRO, SEIS FUERA. A SEIS RESPIRACIONES POR MINUTO LA RESPIRACIÓN ENTRA EN FASE CON LA ONDA DE PRESIÓN ARTERIAL; SOLTAR EL AIRE MÁS DESPACIO DE LO QUE SE COGE ES LO QUE FRENA EL PULSO</string>
+    <string name="breathe_notice_care">POR LA NARIZ Y SIN FORZAR: SI TE FALTA AIRE, RESPIRA MENOS HONDO. ZEN NO MIDE NADA, SOLO MARCA EL RITMO</string>
 
     <!-- Errores -->
     <string name="error_no_settings_screen">Este dispositivo no ofrece esa pantalla de ajustes</string>

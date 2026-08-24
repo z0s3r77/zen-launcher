@@ -1,6 +1,9 @@
 package com.zenlauncher.zen
 
 import android.content.Context
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import com.zenlauncher.zen.core.SystemZenClock
 import com.zenlauncher.zen.core.ZenClock
 import com.zenlauncher.zen.data.apps.LauncherAppsRepository
@@ -9,6 +12,9 @@ import com.zenlauncher.zen.data.battery.AndroidBatteryReader
 import com.zenlauncher.zen.data.battery.SystemSettingsBatterySaverController
 import com.zenlauncher.zen.data.db.SqliteSessionRepository
 import com.zenlauncher.zen.data.media.MediaSessionTransport
+import com.zenlauncher.zen.data.notes.FileAttachmentStore
+import com.zenlauncher.zen.data.notes.SqliteNotesRepository
+import com.zenlauncher.zen.data.voice.OnDeviceDictation
 import com.zenlauncher.zen.data.notifications.ListenerNotificationsRepository
 import com.zenlauncher.zen.data.prefs.DataStorePreferencesRepository
 import com.zenlauncher.zen.domain.apps.AppRestrictionManager
@@ -16,6 +22,12 @@ import com.zenlauncher.zen.domain.apps.SeedEssentialFavourites
 import com.zenlauncher.zen.domain.battery.BatteryReader
 import com.zenlauncher.zen.domain.battery.BatterySaverController
 import com.zenlauncher.zen.domain.media.MediaTransport
+import com.zenlauncher.zen.domain.notes.AttachmentStore
+import com.zenlauncher.zen.domain.notes.Dictation
+import com.zenlauncher.zen.domain.notes.EmbeddingModel
+import com.zenlauncher.zen.domain.notes.LexicalEmbedder
+import com.zenlauncher.zen.domain.notes.NoteIndexer
+import com.zenlauncher.zen.domain.notes.NotesRepository
 import com.zenlauncher.zen.domain.notifications.NotificationsRepository
 import com.zenlauncher.zen.domain.repository.InstalledAppsRepository
 import com.zenlauncher.zen.domain.repository.PreferencesRepository
@@ -42,6 +54,18 @@ class ZenContainer(context: Context) {
 
     val clock: ZenClock by lazy { SystemZenClock() }
 
+    /**
+     * Scope atado al proceso, no a ninguna pantalla.
+     *
+     * Existe para el trabajo que **no puede** morir con la pantalla que lo lanzo:
+     * guardar una nota mientras se navega a la home, o limpiar sus imagenes al
+     * descartarla. `SupervisorJob` para que un fallo en una de esas tareas no cancele
+     * las demas.
+     */
+    val appScope: CoroutineScope by lazy {
+        CoroutineScope(SupervisorJob() + Dispatchers.Default)
+    }
+
     val preferences: PreferencesRepository by lazy {
         DataStorePreferencesRepository(appContext)
     }
@@ -49,6 +73,26 @@ class ZenContainer(context: Context) {
     val sessions: SessionRepository by lazy { SqliteSessionRepository(appContext) }
 
     val installedApps: InstalledAppsRepository by lazy { LauncherAppsRepository(appContext) }
+
+    val notes: NotesRepository by lazy { SqliteNotesRepository(appContext) }
+
+    val noteAttachments: AttachmentStore by lazy { FileAttachmentStore(appContext, clock) }
+
+    /**
+     * Motor de vectores, nivel 0: Kotlin puro y cero megabytes.
+     *
+     * Es la unica linea que hay que cambiar para pasar a EmbeddingGemma: el indice, las
+     * conexiones y el buscador hablan con [EmbeddingModel], no con esta clase. Al
+     * cambiarlo, los vectores del motor anterior dejan de encontrarse solos —cada uno
+     * se guarda con el id de quien lo genero— y `NoteIndexer.sync` reindexa por tandas.
+     */
+    val embedder: EmbeddingModel by lazy { LexicalEmbedder() }
+
+    val noteIndexer: NoteIndexer by lazy { NoteIndexer(notes, embedder, clock) }
+
+    // Reconocedor de voz del propio dispositivo: sin red, sin modelo empotrado y sin
+    // descarga. Si el telefono no lo trae, la fila de dictar no llega a pintarse.
+    val dictation: Dictation by lazy { OnDeviceDictation(appContext) }
 
     val battery: BatteryReader by lazy { AndroidBatteryReader(appContext) }
 

@@ -8,6 +8,9 @@ import com.zenlauncher.zen.presentation.apps.AppDrawerViewModel
 import com.zenlauncher.zen.presentation.apps.HomeAppsViewModel
 import com.zenlauncher.zen.presentation.apps.RestrictedAppsViewModel
 import com.zenlauncher.zen.presentation.home.HomeViewModel
+import com.zenlauncher.zen.presentation.notes.NoteDetailViewModel
+import com.zenlauncher.zen.presentation.notes.NotesViewModel
+import com.zenlauncher.zen.presentation.notes.QuickNoteViewModel
 import com.zenlauncher.zen.presentation.notifications.NotificationsViewModel
 import com.zenlauncher.zen.presentation.session.SessionViewModel
 import com.zenlauncher.zen.presentation.settings.SettingsViewModel
@@ -66,6 +69,30 @@ fun zenViewModelFactory(container: ZenContainer): ViewModelProvider.Factory = vi
             notifications = container.postedNotifications,
             installedApps = container.installedApps,
             restrictions = container.restrictions,
+        )
+    }
+    initializer {
+        NotesViewModel(
+            notes = container.notes,
+            indexer = container.noteIndexer,
+            appScope = container.appScope,
+        )
+    }
+    initializer {
+        QuickNoteViewModel(
+            notes = container.notes,
+            attachments = container.noteAttachments,
+            dictation = container.dictation,
+            clock = container.clock,
+            appScope = container.appScope,
+        )
+    }
+    initializer {
+        NoteDetailViewModel(
+            notes = container.notes,
+            attachments = container.noteAttachments,
+            clock = container.clock,
+            appScope = container.appScope,
         )
     }
     initializer {

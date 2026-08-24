@@ -69,9 +69,13 @@ fun MonoData(
 /**
  * Boton compacto de rotulo tecnico dentro de un marco de 1px.
  *
- * Es el unico boton "de aparato" de Zen y esta reservado a la accion principal de la
- * pantalla de inicio: empezar una sesion. Marco y no relleno, para que no compita con
- * la hora, que sigue siendo lo mas visible.
+ * Es el unico boton "de aparato" de Zen y esta reservado a las dos acciones propias de
+ * la pantalla de inicio: empezar una sesion y respirar. Marco y no relleno, para que no
+ * compita con la hora, que sigue siendo lo mas visible.
+ *
+ * @param stretch marco al ancho disponible en lugar de al del rotulo. Sirve para
+ *   apilar dos botones —ZEN y RESPIRA— y que los dos marcos midan lo mismo: con anchos
+ *   distintos, uno bajo el otro, el borde izquierdo queda dentado y parece un descuido.
  */
 @Composable
 fun ZenTagButton(
@@ -79,6 +83,7 @@ fun ZenTagButton(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     onClickLabel: String? = null,
+    stretch: Boolean = false,
 ) {
     Box(
         modifier = modifier
@@ -91,8 +96,10 @@ fun ZenTagButton(
     ) {
         Box(
             modifier = Modifier
+                .then(if (stretch) Modifier.fillMaxWidth() else Modifier)
                 .border(ZenSpacing.Hairline, ZenColors.Border)
                 .padding(horizontal = ZenSpacing.Medium, vertical = ZenSpacing.Small),
+            contentAlignment = Alignment.Center,
         ) {
             MonoLabel(text = text, color = ZenColors.Foreground)
         }

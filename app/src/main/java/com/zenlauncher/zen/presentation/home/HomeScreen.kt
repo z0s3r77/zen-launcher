@@ -9,8 +9,10 @@ import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.width
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -42,7 +44,8 @@ import java.util.Locale
 /**
  * Pantalla de inicio.
  *
- * Jerarquia: la hora manda, con el boton de sesion a su derecha; debajo, el mando del
+ * Jerarquia: la hora manda, con los dos botones propios de Zen a su derecha —empezar
+ * una sesion y respirar un minuto—; debajo, el mando del
  * reproductor y la reticula de aplicaciones que **no** quitan tiempo, ambos en la zona
  * del pulgar. Todo lo que administra la aplicacion —empezar una sesion desde el
  * principio, restringidas, registro y ajustes— vive plegado al final: son cosas que se
@@ -75,7 +78,9 @@ fun HomeScreen(
     onLaunchApp: (InstalledApp) -> Unit,
     onOpenDrawer: () -> Unit,
     onOpenHomeApps: () -> Unit,
+    onOpenNotes: () -> Unit,
     onStartSession: () -> Unit,
+    onBreathe: () -> Unit,
     onOpenRestricted: () -> Unit,
     onOpenStats: () -> Unit,
     onOpenSettings: () -> Unit,
@@ -146,7 +151,9 @@ fun HomeScreen(
                         onLaunchApp = onLaunchApp,
                         onOpenDrawer = onOpenDrawer,
                         onOpenHomeApps = onOpenHomeApps,
+                        onOpenNotes = onOpenNotes,
                         onStartSession = onStartSession,
+                        onBreathe = onBreathe,
                         onOpenNotifications = onOpenNotifications,
                         onPreviousTrack = onPreviousTrack,
                         onTogglePlayback = onTogglePlayback,
@@ -172,7 +179,9 @@ private fun ColumnScope.HomeBody(
     onLaunchApp: (InstalledApp) -> Unit,
     onOpenDrawer: () -> Unit,
     onOpenHomeApps: () -> Unit,
+    onOpenNotes: () -> Unit,
     onStartSession: () -> Unit,
+    onBreathe: () -> Unit,
     onOpenNotifications: (String?) -> Unit,
     onPreviousTrack: () -> Unit,
     onTogglePlayback: () -> Unit,
@@ -191,13 +200,33 @@ private fun ColumnScope.HomeBody(
             style = ZenTextStyles.Clock,
             color = ZenColors.Foreground,
         )
-        // Arrancar una sesion es la unica accion que merece un boton propio, y esta
-        // donde cae el pulgar al mirar la hora.
-        ZenTagButton(
-            text = stringResource(R.string.home_zen_button),
-            onClick = onStartSession,
-            onClickLabel = stringResource(R.string.home_zen_button_label),
-        )
+        // Las dos unicas acciones con boton propio, apiladas donde cae el pulgar al
+        // mirar la hora: arrancar una sesion y respirar un minuto. Ninguna abre una
+        // aplicacion ni lleva a una lista; son las dos cosas que Zen sabe hacer por si
+        // mismo, y por eso no bajan al menu.
+        //
+        // `IntrinsicSize.Max` mide el rotulo mas largo —RESPIRA— y los dos marcos salen
+        // con ese ancho: apilados, dos marcos de anchos distintos se leen como un fallo
+        // de maquetacion.
+        Column(
+            modifier = Modifier.width(IntrinsicSize.Max),
+            horizontalAlignment = Alignment.End,
+        ) {
+            ZenTagButton(
+                text = stringResource(R.string.home_zen_button),
+                onClick = onStartSession,
+                onClickLabel = stringResource(R.string.home_zen_button_label),
+                modifier = Modifier.fillMaxWidth(),
+                stretch = true,
+            )
+            ZenTagButton(
+                text = stringResource(R.string.home_breathe_button),
+                onClick = onBreathe,
+                onClickLabel = stringResource(R.string.home_breathe_button_label),
+                modifier = Modifier.fillMaxWidth(),
+                stretch = true,
+            )
+        }
     }
 
     // Aqui vivian el medidor de bateria y la franja de conexiones. Se quitaron al dejar
@@ -279,16 +308,15 @@ private fun ColumnScope.HomeBody(
     Spacer(Modifier.weight(1f).fillMaxWidth())
 
     ZenHairline()
-    // Sitio reservado para las notas rapidas con IA: recordatorios que se generan solos
-    // e ideas que se enlazan entre si. Vive abajo, con "Menu", y no encima de la
-    // reticula: lo de arriba es para lo que se usa cada dia. Todavia no hace nada, y por
-    // eso **no es pulsable**: una fila que se traga el toque en silencio ensena al
-    // usuario a desconfiar de las que si funcionan.
+    // Notas. Vive abajo, con "Menu", y no encima de la reticula: lo de arriba es para lo
+    // que se usa cada dia. Estuvo aqui marcada PRONTO y sin reaccionar al toque mientras
+    // no existia, que es como debe estar una fila que no lleva a ninguna parte; ahora
+    // lleva, asi que se toca.
     ZenListRow(
         label = stringResource(R.string.home_notes),
         index = "··",
-        labelColor = ZenColors.Muted,
-        trailing = { MonoLabel(text = stringResource(R.string.home_notes_soon)) },
+        labelColor = ZenColors.Secondary,
+        onClick = onOpenNotes,
     )
 }
 

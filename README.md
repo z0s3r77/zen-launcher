@@ -52,6 +52,12 @@ Dispositivo objetivo: **Nothing Phone (2a)** con Nothing OS 4.1 / Android 16.
   ZEN, la batería y el mando, y solo queda la franja con la fecha y el estado de la
   sesión. La fila se enciende en blanco mientras está abierto, y se cierra por donde se
   abrió —la misma fila, ahora `CERRAR`— o con el gesto de atrás.
+- **Botón RESPIRA** — justo debajo de ZEN, el otro botón propio de la home: un minuto
+  de respiración guiada, cuatro segundos dentro y seis fuera, seis veces. La pantalla
+  dibuja el minuto entero como una curva y una marca la recorre; lo ya respirado queda
+  trazado en blanco y lo que falta, en gris. Un toque táctil seco marca cada cambio de
+  fase para poder hacerlo con los ojos cerrados. Ver
+  [por qué esos números](#respirar-un-minuto).
 - **Mando del reproductor** — anterior, pausa y siguiente para lo que esté sonando
   (Spotify incluido), con un ecualizador de cuatro barras que se mueve mientras suena
   algo y se queda quieto al pausar. **Solo aparece si hay algo que mandar**: sin audio
@@ -66,9 +72,39 @@ Dispositivo objetivo: **Nothing Phone (2a)** con Nothing OS 4.1 / Android 16.
   (el reproductor, una descarga) ni las cabeceras de grupo, y de las restringidas no
   enseña ninguna. Usa el **mismo acceso opcional** que la información de la canción: sin
   concederlo no hay marcas y todo lo demás funciona igual.
-- **Notas rápidas** — sitio reservado en la pantalla de inicio, marcado `PRONTO` y sin
-  reaccionar al toque hasta que exista. La idea es tomar notas que generen recordatorios
-  y enlacen ideas entre sí.
+- **Notas** — captura de ideas en la pantalla de inicio, a un toque de la fila **Notas**.
+  Dentro, `Nota rápida` abre un campo de texto con el cursor puesto y el teclado
+  abierto: se escribe, se guarda y se vuelve **a la pantalla de inicio**, no a la lista.
+  Debajo, un buscador que encuentra sin acentos ni mayúsculas, y las ideas recientes en
+  orden cronológico. Sin carpetas y sin etiquetas para filtrar: en un cuaderno, lo de
+  ayer está donde estaba ayer.
+
+  Se puede **dictar**: la transcripción la hace el reconocedor **en el dispositivo** de
+  Android, sin red y sin modelo empotrado, y el texto aparece según se habla. El audio
+  no se guarda en ningún sitio; lo único que llega a la nota es texto. Lo dictado se
+  añade detrás de lo ya escrito, así que teclado y voz se mezclan en la misma nota.
+
+  Se pueden **adjuntar imágenes** (selector de fotos del sistema: no pide ningún
+  permiso y Zen nunca ve el carrete, solo la foto elegida) y la imagen se **copia** al
+  almacenamiento privado, reducida: una nota no puede perder su foto porque limpies la
+  galería. Los **enlaces no tienen botón**: se reconocen solos dentro del texto al
+  guardar, porque un enlace siempre llega pegado.
+
+  La nota se guarda **tal cual**, con lo que el asistente local aún no ha deducido
+  (título, resumen, etiquetas y conexiones) apuntado como pendiente. Esa es la regla que
+  mantiene la captura instantánea: si generar un título pudiera retrasar el guardado, la
+  idea dependería de que un modelo responda a tiempo. Ver
+  [El asistente local](#el-asistente-local).
+- **Buscar por significado** — el buscador encuentra primero lo que contiene lo que
+  escribiste, y debajo, bajo `TAMBIÉN RELACIONADAS`, lo que se parece aunque use otras
+  palabras. Son dos listas y no una: lo que contiene lo buscado y lo que se parece a lo
+  buscado no son lo mismo, y mezclarlas haría dudar de si el buscador entiende.
+- **Conexiones entre ideas** — el índice propone parejas de notas que hablan de lo
+  mismo. Aparecen dentro de la nota, bajo `¿SE PARECE A ESTAS?` —pregunta, no afirma: el
+  índice sabe que dos ideas se parecen, no si son la misma—, con `Conectar` e `Ignorar`
+  del mismo tamaño. Lo que se ignora **no se vuelve a proponer nunca**. En la pantalla de
+  Notas aparecen como mucho tres ideas con algo esperando respuesta: es un aviso, no una
+  bandeja de entrada.
 - **Aplicaciones restringidas** — se marcan y desaparecen del launcher y de la lista.
   El estado se lee como texto (`BLOQUEADA` / `LIBRE`), no como un interruptor.
 - **Elegir lo que se ve en el inicio** — pantalla propia (`Ajustes Zen → Aplicaciones en
@@ -86,6 +122,107 @@ Dispositivo objetivo: **Nothing Phone (2a)** con Nothing OS 4.1 / Android 16.
   sesión, pulsar Inicio lleva al cronómetro, no a las aplicaciones.
 - **Registro** — tiempo total, completadas, abandonadas, batería consumida, sesión más
   larga, media y porcentaje de completadas. Sin rachas, sin logros, sin objetivos.
+
+## Respirar un minuto
+
+**Botón RESPIRA → un minuto, seis respiraciones, y fuera.** Sin cuenta de días, sin
+racha, sin felicitación al terminar: la pantalla dice `Hecho` y ya está.
+
+El patrón es **4 s inspirando / 6 s espirando**, sin apneas, seis veces. No es un ritmo
+elegido por estética:
+
+- **Seis respiraciones por minuto (0,1 Hz)** es la *frecuencia de resonancia* del
+  sistema cardiovascular: a ese ritmo la respiración entra en fase con la onda de
+  presión arterial, la variabilidad de la frecuencia cardiaca llega a su máximo y la
+  ganancia barorrefleja es la más alta que se mide a cualquier otro ritmo (Vaschillo et
+  al. 2002; Lehrer y Gevirtz, *Frontiers in Psychology*, 2014). Es el ritmo sobre el que
+  se construye el biofeedback de HRV.
+- **La espiración más larga que la inspiración** porque el freno vagal sobre el corazón
+  actúa al soltar el aire: el pulso baja espirando y sube inspirando. Alargar la
+  espiración es lo que inclina el equilibrio hacia el lado parasimpático, no el simple
+  hecho de respirar despacio (Zaccaro et al., *Frontiers in Human Neuroscience*, 2018;
+  Laborde et al., 2022).
+- **Sin retenciones.** Los patrones "en caja" (4-4-4-4) bajan el ritmo a base de aguantar
+  el aire, y a quien llega agitado la retención le sube la sensación de ahogo. El
+  cociente entre inspirar y espirar es lo que hace el trabajo.
+- **Un minuto** porque es la dosis que de verdad se toma. El efecto sobre la
+  variabilidad cardiaca aparece en las primeras respiraciones lentas, no al cuarto de
+  hora, y los ensayos sobre práctica breve diaria (Balban et al., *Cell Reports
+  Medicine*, 2023) trabajan con cinco minutos al día. Seis ciclos de diez segundos
+  entran exactos en 60 000 ms: el minuto no corta a mitad de una respiración.
+
+**Lo que Zen no hace aquí**: no mide nada. No hay sensor de pulso, ni cámara, ni
+micrófono en juego —marcar el ritmo no necesita ninguno—, así que la pantalla guía y no
+promete un resultado. No es un tratamiento, y el aviso al pie lo dice: por la nariz, sin
+forzar, y si falta el aire se respira menos hondo.
+
+**Cómo está hecho**: [`BreathingPattern`](app/src/main/java/com/zenlauncher/zen/domain/breathing/BreathingPattern.kt)
+es una función pura del tiempo transcurrido —amplitud de la curva, fase, ciclo y
+segundos restantes—, así que el patrón entero se prueba en la JVM sin esperar un minuto
+ni dibujar un fotograma. La pantalla lleva la cuenta con el **reloj de fotogramas**
+(`withFrameMillis`) y no con una animación de 60 000 ms: Compose escala las animaciones
+con `animator_duration_scale`, y con las animaciones apagadas en opciones de
+desarrollador un `Animatable` habría terminado el minuto en cero segundos. El valor del
+cronómetro se lee **dentro del dibujo**, no en la composición: la marca va a sesenta
+fotogramas por segundo y la pantalla se recompone una vez por segundo.
+
+El toque táctil de cada cambio de fase usa la respuesta háptica del sistema
+(`performHapticFeedback`), **no** el permiso `VIBRATE`: quien la tenga apagada en
+Android no siente nada y el ejercicio funciona igual. Mientras corre, la pantalla se
+mantiene encendida (`keepScreenOn`) y se suelta al salir o al parar.
+
+---
+
+## El asistente local
+
+Todo el procesamiento de las notas ocurre **en el dispositivo**. No hay ninguna API de
+pago, ningún servidor y ninguna cuenta. Lo que se escribe no sale del teléfono.
+
+Está montado en tres niveles detrás de dos interfaces —`EmbeddingModel` e
+`IdeaAssistant`—, para que cambiar de motor no obligue a rehacer ninguna pantalla:
+
+| Nivel | Peso | Qué hace |
+| --- | --- | --- |
+| **0 — de fábrica** | 0 MB | Kotlin puro: normalización del castellano, búsqueda, conexiones por vocabulario y raíz compartida, temas recurrentes y andamios de pensamiento |
+| **1 — opcional** | ~200 MB | EmbeddingGemma (308M): conexiones semánticas aunque dos notas no compartan ni una palabra |
+| **2 — opcional** | 0,5–2,6 GB | Un Gemma pequeño: título, resumen, etiquetas, preguntas y propuestas de proyecto |
+
+**Zen funciona entero en el nivel 0.** Los niveles 1 y 2 se activan a mano desde
+`Ajustes Zen`, con el tamaño escrito antes de descargar nada y un botón para borrarlos.
+Si el modelo no está, se corrompe o el proceso muere, se cae al nivel inferior sin
+avisar de nada. Es la misma regla que el resto de Zen: degradar siempre, nunca bloquear.
+
+El nivel 0 ya está montado y funcionando: `LexicalEmbedder` reparte las raíces de cada
+nota en un vector de 512 posiciones con el truco del hashing (con signo, para que las
+colisiones se cancelen en vez de acumularse), y `SemanticIndex` compara por fuerza bruta
+—con unos miles de notas son unos pocos millones de multiplicaciones, y un índice
+aproximado sería mucho código para ahorrar milisegundos que nadie percibe.
+
+**Su límite está medido y no se disimula**: relaciona notas que comparten vocabulario o
+familia de palabras, pero no relaciona dos ideas que hablan de lo mismo sin compartir ni
+una palabra («aburrirse» ↔ «los momentos muertos», 0,00). Eso es exactamente lo que
+resuelve EmbeddingGemma detrás de la misma interfaz.
+
+El umbral (**0,18**) vive en el propio motor y no en quien compara: dos motores no
+reparten las semejanzas en la misma escala, y un número fijo en el código daría conexiones
+absurdas al cambiar de modelo. Está ajustado con datos y no a ojo — sobre pares reales,
+lo que debe conectarse va de 0,21 hacia arriba y lo que no, a 0,00. Si alguna vez se
+solapan, el arreglo es la lista de palabras vacías, **no bajar el umbral**: una conexión
+que no viene a cuento enseña a ignorar la sección entera, mientras que una que falta solo
+deja una nota sin compañía.
+
+El id del motor lleva **versión del cálculo** (`lexico-v2`), no solo del motor: `NoteIndexer`
+únicamente reindexa lo que no tiene vector de ese id, así que cambiar tokens, raíces,
+palabras vacías, pesos o dimensiones **sin subir la versión** deja los vectores viejos ahí
+para siempre, calculados con las reglas de antes.
+
+El nivel 2 vive en **otro proceso** (`:ia`). No es un detalle de rendimiento: Zen es la
+pantalla de inicio, y cargar más de un giga de modelo en su proceso significaría que
+Android, al quedarse sin memoria, mata el launcher y deja el móvil sin home. Aislado,
+lo que muere es el asistente.
+
+Nada de esto se ejecuta durante la captura. Guardar una nota es escribir en SQLite y
+volver; lo que el asistente deduzca llega después, y una nota sin procesar se lee igual.
 
 ## Cómo se sale
 
@@ -125,6 +262,7 @@ com.zenlauncher.zen/
     battery/     BatterySaverController   ← frontera v0.2
     stats/       StatsCalculator (puro)
     notifications/ NotificationBadges, NotificationGrouping (puros)
+    breathing/   BreathingPattern (puro): la curva 4-6 en función del tiempo
   data/          SQLite, DataStore, LauncherApps, BatteryManager
   system/        alarma, receptor de fin de sesión, notificación
   presentation/  Compose: theme, components, una pantalla + ViewModel por destino
@@ -281,10 +419,11 @@ con la red.
 ### El ecualizador no puede seguir el sonido de verdad
 
 Se mueve mientras hay reproducción y se para al pausar, y eso es lo único que promete.
-Reaccionar a la onda real exige `Visualizer`, que pide el permiso **`RECORD_AUDIO`** —el
-micrófono— y que además ya no captura la mezcla global del dispositivo desde hace varias
-versiones de Android. Pedir el micrófono para animar cuatro barras sería un intercambio
-pésimo, así que la animación es sintética: periodos distintos y no múltiplos entre sí
+Reaccionar a la onda real exige `Visualizer`, que ya no captura la mezcla global del
+dispositivo desde hace varias versiones de Android. Zen declara `RECORD_AUDIO` desde que
+se puede dictar una nota, pero eso no cambia la decisión: el dictado abre el micrófono
+unos segundos y a petición del usuario, mientras que animar cuatro barras exigiría
+tenerlo abierto **todo el tiempo que suene música**. Así que la animación es sintética: periodos distintos y no múltiplos entre sí
 para que el conjunto no se sincronice. Parado no dibuja ni un fotograma de más.
 
 ### El bloqueo real de aplicaciones no existe sin privilegios
@@ -314,6 +453,7 @@ ejercitado cuando llegue la implementación privilegiada.
 | `AudioManager.dispatchMediaKeyEvent` / `isMusicActive` | Mando del reproductor | Ninguno |
 | `MediaSessionManager.getActiveSessions` | Carátula, título y artista | Acceso a notificaciones, **opcional** |
 | `NotificationListenerService.getActiveNotifications` | Marcas de aviso y su lista | Acceso a notificaciones, **opcional** |
+| `SpeechRecognizer.createOnDeviceSpeechRecognizer` | Dictar una nota, sin red | `RECORD_AUDIO`, **opcional** |
 | `Settings.ACTION_HOME_SETTINGS` | Salir de Zen: elegir otra pantalla de inicio | Ninguno |
 | `WindowInsetsController.hide` (navegación) | Ocultar la barra de gestos | Ninguno |
 
@@ -326,9 +466,17 @@ ejercitado cuando llegue la implementación privilegiada.
   que es exactamente el caso de Zen. Se eligió sobre `SCHEDULE_EXACT_ALARM` tras
   comprobar en dispositivo que ese está denegado por defecto desde Android 14 y hacía
   caer la alarma a inexacta, con una ventana de ~45 s.
+- **`RECORD_AUDIO`** — dictar una nota. Se pide **al tocar «Dictar»**, no al instalar ni
+  al abrir la pantalla: quien escribe con el teclado no ve nunca el diálogo. La
+  transcripción la hace `createOnDeviceSpeechRecognizer`, el reconocedor **del propio
+  dispositivo**: sin red, sin modelo empotrado y sin descarga. Zen **no guarda el audio
+  en ningún sitio**; lo único que llega a la nota es texto.
 
-Ambos **degradan solos**: sin alarma exacta se usa una inexacta, y sin notificaciones la
-sesión se cierra igualmente al volver a Zen. Ninguno bloquea el flujo.
+Los tres **degradan solos**: sin alarma exacta se usa una inexacta, sin notificaciones la
+sesión se cierra igualmente al volver a Zen, y el dictado desaparece por triplicado —sin
+reconocedor de dispositivo la fila no se pinta, sin el paquete de voz del idioma tampoco,
+y si se deniega el permiso la fila lo dice como texto y el teclado sigue igual. Ninguno
+bloquea el flujo.
 
 Hay un tercero que **no se pide**: `BIND_NOTIFICATION_LISTENER_SERVICE` lo declara el
 servicio para que solo el sistema pueda enlazarlo, y la concesión la da el usuario a mano
@@ -366,17 +514,18 @@ Cambiar de v0.1 a v0.2 debería ser sustituir las implementaciones registradas e
 ./gradlew testDebugUnitTest
 ```
 
-189 tests en la JVM, sin dispositivo. Cubren el cálculo del tiempo restante (incluidos
+236 tests en la JVM, sin dispositivo. Cubren el cálculo del tiempo restante (incluidos
 reinicio y manipulación del reloj), sesión completada y abandonada, duración registrada,
 idempotencia del cierre, cálculo de batería consumida —con sus casos no fiables—,
 persistencia en SQLite y en DataStore, selección de aplicaciones, la resolución de las
 aplicaciones esenciales por candidatos de paquete, el sembrado de la pantalla de inicio,
 la lectura del acceso al oyente de notificaciones, qué cuenta como aviso pendiente y
-cómo se agrupan, la política de barras del sistema y cinco ViewModel.
+cómo se agrupan, la política de barras del sistema, el patrón de respiración guiada y cinco ViewModel.
 
 Las pantallas se cubren con **tests de UI de Compose sobre Robolectric**, también sin
-dispositivo: `HomeScreenTest`, `SettingsScreenTest`, `NotificationsScreenTest` y
-`ActiveSessionScreenTest`. Cada
+dispositivo: `HomeScreenTest`, `SettingsScreenTest`, `NotificationsScreenTest`,
+`ActiveSessionScreenTest` y `BreatheScreenTest` —este último mueve el reloj de
+fotogramas a mano, porque el ejercicio no se queda quieto solo hasta el minuto—. Cada
 corrección lleva su test de regresión, con un comentario que explica qué fallo fija.
 
 ---

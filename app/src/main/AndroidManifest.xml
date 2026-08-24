@@ -21,6 +21,21 @@
     <uses-permission android:name="android.permission.USE_EXACT_ALARM" />
 
     <!--
+      Dictar una nota. Se pide en tiempo de ejecucion y SOLO al tocar "Dictar": quien
+      escribe con el teclado no ve nunca el dialogo.
+
+      La transcripcion la hace el reconocedor EN EL DISPOSITIVO de Android
+      (createOnDeviceSpeechRecognizer): no hay modelo empotrado, no hay descarga y el
+      audio no sale del telefono. Zen no guarda el audio en ningun sitio; lo unico que
+      llega a la nota es texto.
+
+      Degrada solo por triplicado: sin reconocedor de dispositivo la fila de dictar no
+      se pinta, sin el paquete de voz del idioma tampoco, y si se deniega el permiso la
+      fila lo dice como texto y el teclado sigue funcionando igual.
+    -->
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+
+    <!--
       Visibilidad de paquetes para un launcher: basta declarar el intent de actividades
       lanzables. NO se pide QUERY_ALL_PACKAGES, que seria desproporcionado.
     -->
@@ -28,6 +43,13 @@
         <intent>
             <action android:name="android.intent.action.MAIN" />
             <category android:name="android.intent.category.LAUNCHER" />
+        </intent>
+        <!--
+          Sin esto, isOnDeviceRecognitionAvailable no ve el servicio de reconocimiento
+          y el dictado se declararia no disponible en un telefono que si puede.
+        -->
+        <intent>
+            <action android:name="android.speech.RecognitionService" />
         </intent>
     </queries>
 

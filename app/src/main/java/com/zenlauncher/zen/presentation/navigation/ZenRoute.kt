@@ -9,6 +9,7 @@ object ZenRoute {
     const val HOME = "home"
     const val DRAWER = "drawer"
     const val SESSION_SETUP = "session_setup"
+    const val BREATHE = "breathe"
     const val RESTRICTED = "restricted"
     const val STATS = "stats"
     const val SETTINGS = "settings"
@@ -17,7 +18,23 @@ object ZenRoute {
     const val HOME_APPS = "home_apps"
 
     /**
-     * Unica ruta con argumento: el paquete cuya marca se toco, para abrir la lista ya
+     * Notas: la pantalla que reune capturar, buscar y recuperar. Se llega desde la fila
+     * de la pantalla de inicio, que es la unica puerta.
+     */
+    const val NOTES = "notes"
+
+    /** Captura. Guardar vuelve a la home, no aqui: capturar, guardar y fuera. */
+    const val NOTES_QUICK = "notes_quick"
+
+    /** Una nota concreta. El id va como segmento porque sin el no hay pantalla. */
+    const val NOTE = "note"
+    const val NOTE_ID_ARG = "nota"
+    const val NOTE_ROUTE = "$NOTE/{$NOTE_ID_ARG}"
+
+    fun note(id: String): String = "$NOTE/$id"
+
+    /**
+     * Unica ruta con argumento opcional: el paquete cuya marca se toco, para abrir la lista ya
      * puesta en esa aplicacion. Es opcional —desde el menu se entra sin el— y por eso
      * va como parametro de consulta y no como segmento obligatorio.
      */

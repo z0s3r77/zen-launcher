@@ -6,6 +6,7 @@ import android.app.role.RoleManager
 import android.content.ActivityNotFoundException
 import android.content.Context
 import android.content.Intent
+import android.net.Uri
 import android.os.Bundle
 import android.provider.Settings
 import android.util.Log
@@ -271,6 +272,12 @@ private fun ZenRoot(
             // lanzador con resultado que el resto para que al volver se refresque si
             // Zen sigue siendo el launcher.
             onExitZen = { context.requestHomeRole(alreadyHome = true, roleLauncher::launch) },
+            // Abrir un enlace de una nota en el navegador. `safeStartActivity` degrada
+            // solo: en un dispositivo sin navegador esto avisa en vez de reventar el
+            // launcher, que es lo que haria una excepcion sin capturar aqui.
+            onOpenLink = { url ->
+                context.safeStartActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
+            },
             onToggleDoubleTapLock = {
                 // Revocar no se puede hacer desde la aplicacion: Android exige que el
                 // usuario lo quite el mismo en Ajustes, y eso esta bien asi.

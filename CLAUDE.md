@@ -37,8 +37,9 @@ tocar cualquier cosa, dar por supuesto lo siguiente:
   con el menú abierto**, donde lo cierra: es la única cara de la home de la que se sale.
 - **La home no se desplaza y no crece.** Todo cabe de una vez y el reloj está siempre en
   el mismo píxel. Lo nuevo va al menú plegado, nunca a una fila permanente más. Las tres
-  únicas filas permanentes son **Todas las aplicaciones** (bajo la retícula), **Notas
-  rápidas** y **Menú**; el resto del alto es retícula, y lo que se sume ahí empuja algo
+  únicas filas permanentes son **Todas las aplicaciones** (bajo la retícula), **Notas**
+  y **Menú**, y los dos únicos botones son **ZEN** y **RESPIRA**, apilados a la
+  derecha de la hora; el resto del alto es retícula, y lo que se sume ahí empuja algo
   fuera de la pantalla. El menú abierto **sustituye a la pantalla entera** y
   deja solo la franja de cabecera: lo que se añada ahí no compite con el reloj.
 - **Lo que no tiene nada detrás no se pinta.** El mando del reproductor aparece solo si
@@ -54,6 +55,9 @@ tocar cualquier cosa, dar por supuesto lo siguiente:
 - **Un launcher se mira cincuenta veces al día.** Nada que parpadee, se anime sin motivo o
   invite a explorar. Las animaciones existentes (ecualizador, latido de carga) solo corren
   mientras el estado que representan está activo; paradas no dibujan ni un fotograma.
+  La curva de **Respira** es la excepción declarada: ahí el movimiento **es** el
+  contenido —se respira siguiéndolo—, vive en su propia pantalla, hay que entrar a
+  propósito y solo corre mientras corre el minuto.
   Las transiciones de `ZenMotion` son la otra excepción y viven bajo la misma regla:
   duran lo que dura un cambio **que el usuario acaba de provocar** (180 ms entrando,
   120 saliendo) y sirven para decir de dónde sale lo que aparece. Nada que dure más ni
@@ -65,7 +69,7 @@ tocar cualquier cosa, dar por supuesto lo siguiente:
 ## Comandos
 
 ```bash
-./gradlew testDebugUnitTest             # 215 tests JVM (incluye UI de Compose sobre Robolectric)
+./gradlew testDebugUnitTest             # 389 tests JVM (incluye UI de Compose sobre Robolectric)
 ./gradlew assembleDebug                 # APK -> app/build/outputs/apk/debug/
 ./gradlew installDebug                  # build + instalar en dispositivo conectado
 ./gradlew lint                          # informe -> app/build/reports/lint-results-*.html
@@ -87,18 +91,29 @@ Cuatro capas en un módulo, **sin framework de inyección**:
 core/          ZenClock (los dos relojes del sistema, inyectable)
 domain/        modelo, repositorios (interfaces), sesión, apps, batería, media,
                notifications (NotificationBadges, NotificationGrouping: puras),
+               notes (Note, NotesRepository, AttachmentStore, Dictation; puras:
+               TextNormalizer, LinkExtractor, LexicalEmbedder, SemanticIndex,
+               NoteIndexer. EmbeddingModel es la frontera para cambiar de motor
+               —el umbral de parecido vive en el motor, no en quien compara),
+               breathing (BreathingPattern: pura, la curva 4-6 en función del tiempo),
                system (políticas puras: LockTaskDecision, SystemBarsPolicy), stats
-data/          SQLite, DataStore, LauncherApps, BatteryManager, AudioManager
+data/          SQLite, DataStore, LauncherApps, BatteryManager, AudioManager,
+               voice (OnDeviceDictation: reconocedor del dispositivo, sin red)
 system/        alarma, receptor de fin de sesión, notificación, admin de dispositivo
 presentation/  theme, components, una pantalla + ViewModel por destino
 ```
 
+- **El id de `EmbeddingModel` lleva versión del cálculo** (`lexico-v2`). Al tocar
+  `TextNormalizer` o `LexicalEmbedder` hay que subirla: `NoteIndexer` solo reindexa lo
+  que no tiene vector de ese id, y sin subirla los vectores viejos se quedan calculados
+  con las reglas antiguas y comparándose con los nuevos.
 - `ZenContainer.kt` es el **único** sitio donde se nombran implementaciones concretas;
   `ZenViewModelFactory.kt` las une a los ViewModel. Añadir una dependencia significa
   tocar esos dos ficheros, no las pantallas.
 - Las decisiones se sacan a **funciones puras del dominio** para poder probarlas sin
   Android: `LockTaskDecision`, `SystemBarsPolicy`, `EssentialApps`, `StatsCalculator`,
-  `SessionProgressCalculator`, `HomeRoleTarget`.
+  `SessionProgressCalculator`, `HomeRoleTarget`, `BreathingPattern`, `LexicalEmbedder`,
+  `SemanticIndex`, `TextNormalizer`, `LinkExtractor`.
 - La sesión activa vive en DataStore como marcas de tiempo, no como un contador: la UI
   solo renderiza un cálculo derivado. Nada de servicios en primer plano.
 - Fronteras marcadas hacia v0.2 (Device Owner): `AppRestrictionManager`,
@@ -115,8 +130,10 @@ presentation/  theme, components, una pantalla + ViewModel por destino
   animaciones decorativas. Colores en `ZenColors`, espaciado en `ZenSpacing`, estilos
   con nombre de rol en `ZenTextStyles`, transiciones en `ZenMotion`: no fijes números
   sueltos en una pantalla.
-- **Ningún permiso nuevo sin justificarlo en el README.** Solo hay dos
-  (`POST_NOTIFICATIONS`, `USE_EXACT_ALARM`) y ambos degradan solos. El acceso al oyente
+- **Ningún permiso nuevo sin justificarlo en el README.** Solo hay tres
+  (`POST_NOTIFICATIONS`, `USE_EXACT_ALARM`, `RECORD_AUDIO`) y los tres degradan solos.
+  `RECORD_AUDIO` se pide al tocar «Dictar», nunca antes, y la transcripción es del
+  reconocedor del propio dispositivo: el audio no se guarda ni sale del teléfono. El acceso al oyente
   de notificaciones no es un permiso del manifiesto: lo concede el usuario a mano, da a
   la vez los metadatos del reproductor y las marcas de aviso, y sin él todo funciona.
 - Todo estado se lee **como texto** además de por la forma o el color (`BLOQUEADA`,
@@ -129,6 +146,16 @@ presentation/  theme, components, una pantalla + ViewModel por destino
 dispositivo. Detalles que muerden:
 
 - `createComposeRule` se importa de `androidx.compose.ui.test.junit4.v2`.
+- `BreatheScreenTest` pone `mainClock.autoAdvance = false`: el ejercicio corre sobre el
+  reloj de fotogramas y no se queda quieto hasta el minuto, así que con el avance
+  automático la primera comprobación esperaría para siempre. El tiempo lo mueve el test.
+- **Un campo de texto no puede leer su valor de un flujo asíncrono.** El buscador de
+  Notas leía el texto que volvía del filtro (`mapLatest` + consulta a SQLite) y perdía
+  letras al escribir: teclear «aburri» dejaba «buar». `NotesViewModel` expone `query`
+  aparte del estado justo por eso.
+- **Toda `LazyColumn` con dos secciones necesita claves con prefijo**, y un test que
+  renderice **dos** elementos en cada una: con claves repetidas Compose lanza excepción,
+  y aquí eso deja el teléfono sin pantalla de inicio.
 - `HomeScreenTest` fija `@Config(qualifiers = "w411dp-h891dp")`: la pantalla por defecto
   de Robolectric es mucho más baja que un móvil real. La home se desplaza a propósito,
   así que lo que vive bajo el pliegue se alcanza con `performScrollTo()`.
