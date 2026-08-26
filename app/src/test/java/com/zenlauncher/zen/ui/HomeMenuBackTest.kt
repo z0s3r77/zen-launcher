@@ -53,6 +53,7 @@ class HomeMenuBackTest {
                     onOpenHomeApps = {},
                     onOpenNotes = {},
                     onOpenReading = {},
+                    onOpenScanner = {},
                     onStartSession = {},
                     onBreathe = {},
                     onOpenNews = {},

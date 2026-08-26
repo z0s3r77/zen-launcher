@@ -22,6 +22,11 @@ import com.zenlauncher.zen.data.prefs.DataStorePreferencesRepository
 import com.zenlauncher.zen.data.reading.AndroidPdfTextSource
 import com.zenlauncher.zen.data.reading.FileBookCoverStore
 import com.zenlauncher.zen.data.reading.SqliteBookRepository
+import com.zenlauncher.zen.data.scanner.AndroidScanExporter
+import com.zenlauncher.zen.data.scanner.FileScanWorkspace
+import com.zenlauncher.zen.data.scanner.MlKitTextRecognizer
+import com.zenlauncher.zen.data.scanner.OpenCvDocumentDetector
+import com.zenlauncher.zen.data.scanner.OpenCvDocumentProcessor
 import com.zenlauncher.zen.data.usage.UsageStatsRepository
 import com.zenlauncher.zen.data.weather.OpenMeteoWeather
 import com.zenlauncher.zen.domain.apps.AppRestrictionManager
@@ -43,6 +48,11 @@ import com.zenlauncher.zen.domain.reading.BookCoverStore
 import com.zenlauncher.zen.domain.reading.BookImporter
 import com.zenlauncher.zen.domain.reading.BookRepository
 import com.zenlauncher.zen.domain.reading.PdfTextSource
+import com.zenlauncher.zen.domain.scanner.DocumentDetector
+import com.zenlauncher.zen.domain.scanner.DocumentProcessor
+import com.zenlauncher.zen.domain.scanner.ScanExporter
+import com.zenlauncher.zen.domain.scanner.ScanWorkspace
+import com.zenlauncher.zen.domain.scanner.TextRecognizer
 import com.zenlauncher.zen.domain.repository.InstalledAppsRepository
 import com.zenlauncher.zen.domain.repository.PreferencesRepository
 import com.zenlauncher.zen.domain.repository.SessionRepository
@@ -181,6 +191,42 @@ class ZenContainer(context: Context) {
             scope = appScope,
         )
     }
+
+    /**
+     * El escaner de documentos. **Las cuatro piezas son perezosas y eso es lo importante.**
+     *
+     * OpenCV son 25 MB de codigo nativo y el modelo de OCR otros pocos; construir
+     * cualquiera de estos objetos los carga en el proceso del LAUNCHER, que es el que el
+     * sistema no deberia tener que matar (ver `LauncherMemory`). Al ser perezosos, quien
+     * no abre el escaner no paga ni un byte: es la misma cuenta que el tiempo y las
+     * noticias, solo que aqui la factura es mucho mas alta.
+     *
+     * **Y es una compra sin devolucion.** Una vez que `System.loadLibrary` ha corrido, la
+     * biblioteca nativa se queda mapeada hasta que el proceso muera: Java no tiene forma
+     * de descargarla. Medido en el dispositivo, tras salir del escaner el proceso conserva
+     * unos 15 MB de `.so mmap`. Lo que si se suelta al salir son los objetos, el modelo de
+     * OCR y la memoria nativa de los `Mat` (ver `MatScope`), que es la parte que crece sin
+     * limite. Por eso la pereza importa aunque no se pueda deshacer: el que nunca abre el
+     * escaner no paga nada, y el que lo abre paga una vez.
+     *
+     * Ninguna sale a internet. La deteccion, el enderezado y el OCR son locales, y el
+     * modelo de texto va empaquetado en el APK: Zen sigue teniendo **dos** consumidores de
+     * `INTERNET`, el tiempo y las noticias.
+     */
+    val documentDetector: DocumentDetector by lazy { OpenCvDocumentDetector() }
+
+    val documentProcessor: DocumentProcessor by lazy { OpenCvDocumentProcessor() }
+
+    /**
+     * Punto de enchufe del OCR, igual que [embedder] lo es del motor de vectores: el dia
+     * que haya otro reconocedor, se cambia esta linea y ni el escaner ni el PDF se enteran.
+     */
+    val textRecognizer: TextRecognizer by lazy { MlKitTextRecognizer(appContext) }
+
+    /** En la cache, no en `filesDir`: un escaneo a medias no es un documento del usuario. */
+    val scanWorkspace: ScanWorkspace by lazy { FileScanWorkspace(appContext) }
+
+    val scanExporter: ScanExporter by lazy { AndroidScanExporter(appContext, clock) }
 
     val battery: BatteryReader by lazy { AndroidBatteryReader(appContext) }
 

@@ -106,6 +106,41 @@ tocar cualquier cosa, dar por supuesto lo siguiente:
   listas hablando del mismo párrafo. La unidad de selección es **la frase** (`Sentences`),
   no un arrastre con manillas: en un móvil se arrastra tapando con el dedo justo lo que se
   quiere marcar, y en filosofía lo que se subraya casi siempre es una frase entera.
+- **El escáner de documentos es la única función con código nativo, y por eso vive
+  plegado.** OpenCV son 24,7 MB de `.so` y el modelo de OCR otros 11: el APK pasa de 8 MB
+  a 73, y son megabytes en el proceso de la **pantalla de inicio**. Se compensa con tres
+  cosas que **no son opcionales**: `abiFilters` a `arm64-v8a` (la del Phone 2a; en un
+  emulador x86_64 hay que añadirla a mano), todo perezoso en `ZenContainer` —quien no
+  abre el escáner no paga ni un byte— y el ViewModel colgado de la **entrada de
+  navegación**, nunca del ámbito de la Activity. Ojo con lo que eso compra: al salir se
+  sueltan el detector, el modelo de OCR y la memoria nativa de los `Mat`, pero **la
+  biblioteca nativa se queda mapeada hasta que muera el proceso** —Java no puede
+  descargarla—, unos 15 MB medidos en el dispositivo. La pereza importa porque quien no
+  abre el escáner no paga nada, no porque se pueda devolver. Entra por el **menú** y no por la retícula, por la regla de
+  siempre: la home no crece y Notas y Lectura ya ocupan las dos únicas celdas que no son
+  aplicaciones.
+- **Un `Mat` es memoria nativa que el recolector de basura no ve.** La detección crea
+  media docena por frame quince veces por segundo; sin soltarlos a mano el escáner reserva
+  cientos de megabytes en un minuto y el sistema mata al launcher. Todo lo que cree un
+  `Mat` va dentro de `withMats { }` (ver `MatScope`), y nada nativo se llama sin atrapar
+  **`Throwable`**: `UnsatisfiedLinkError` es un `Error`, no una `Exception`, y un
+  `runCatching` normal no lo coge.
+- **Las proporciones del escaneo se recuperan, no se miden.** Estirar el trapecio hasta el
+  rectángulo que envuelve sus esquinas da un A4 aplastado, y nada en la pantalla lo
+  delata. Se despeja con la solución cerrada de Zhang y He (`DocumentAspect`), y cuando el
+  móvil está alineado con la hoja en un eje —que es la postura normal de quien mira la
+  mesa desde arriba— la focal deja de estar en la foto y se supone una de móvil
+  corriente. **No lo cambies por la media de los lados**: está medido en
+  `DocumentAspectTest` que falla el doble o el triple.
+- **El escáner guarda tres ficheros por página y el original no se toca nunca.** La foto
+  cruda deja volver a mover las esquinas media hora después; la enderezada sin filtro es
+  de donde salen todos los modos, así que cambiar de filtro no degrada nada ni vuelve a
+  enderezar. Los tres están en la **caché**, no en `filesDir`: un escaneo a medias no es
+  un documento del usuario, y se borran al salir.
+- **El escáner reparte el trabajo en tres ritmos y mezclarlos lo rompe.** Por frame, solo
+  detectar y decidir, en el hilo de análisis y a 15 fps como mucho; por captura, enderezar
+  y filtrar; a petición, OCR y exportar. El análisis pide 640x480 y la captura la máxima
+  resolución: detectar sobre 12 megapíxeles es mover 48 MB por frame para tirarlos.
 - **Solo dos cosas salen a internet: el tiempo y la portada de noticias.** Las dos son
   peticiones de ida, sin clave y sin cuenta, y las dos están apagadas mientras nadie las
   pida. Si aparece una tercera, es una decisión de producto y va al README antes que al
@@ -179,11 +214,11 @@ tocar cualquier cosa, dar por supuesto lo siguiente:
 ## Comandos
 
 ```bash
-./gradlew testDebugUnitTest             # 843 tests JVM (incluye UI de Compose sobre Robolectric)
+./gradlew testDebugUnitTest             # 926 tests JVM (incluye UI de Compose sobre Robolectric)
 ./gradlew assembleDebug                 # APK -> app/build/outputs/apk/debug/
 ./gradlew installDebug                  # build + instalar en dispositivo conectado
 ./gradlew lint                          # informe -> app/build/reports/lint-results-*.html
-./gradlew connectedDebugAndroidTest     # instrumentados (app/src/androidTest), necesita dispositivo
+./gradlew connectedDebugAndroidTest     # instrumentados (app/src/androidTest), necesita un dispositivo arm64
 ./gradlew clean
 ```
 
@@ -222,6 +257,12 @@ domain/        modelo, repositorios (interfaces), sesión, apps, batería, media
                conducta, DistractionPolicy cuándo callarse, WeeklyUsage agrega varios
                días, UsagePatterns saca las observaciones y el veredicto, y UsageMood
                resume el día en una cara),
+               scanner (puras: Quad y Corners ordenan y validan las cuatro esquinas,
+               Homography resuelve la perspectiva, DocumentAspect recupera la proporción
+               real de una hoja en escorzo, CaptureDecision dice cuándo disparar solo,
+               Stillness lee el acelerómetro, PdfPageSize mide la hoja del PDF y
+               ScanNaming pone los nombres. DocumentDetector, DocumentProcessor,
+               TextRecognizer, ScanWorkspace y ScanExporter son las fronteras),
                system (políticas puras: LockTaskDecision, SystemBarsPolicy,
                MemoryTrimPolicy), stats
 data/          SQLite, DataStore, LauncherApps, BatteryManager, AudioManager,
@@ -234,7 +275,14 @@ data/          SQLite, DataStore, LauncherApps, BatteryManager, AudioManager,
                reading (AndroidPdfTextSource: PdfRenderer del sistema, cero librerías;
                SqliteBookRepository; FileBookCoverStore),
                usage (UsageStatsRepository: solo traduce constantes de Android;
-               el cálculo está en el dominio)
+               el cálculo está en el dominio),
+               scanner (OpenCvDocumentDetector y OpenCvDocumentProcessor: la única
+               dependencia nativa, nunca lanzan y sueltan los Mat con MatScope;
+               MlKitTextRecognizer con el modelo dentro del APK, sin red;
+               CameraXScanner: vista previa, análisis y captura;
+               SensorStillness: acelerómetro; FileScanWorkspace: caché privada;
+               AndroidScanExporter: MediaStore y PdfDocument, sin permiso de
+               almacenamiento)
 system/        alarma, receptor de fin de sesión, notificación, admin de dispositivo
 presentation/  theme, components, una pantalla + ViewModel por destino
 ```
@@ -254,7 +302,9 @@ presentation/  theme, components, una pantalla + ViewModel por destino
   `TextReflow`, `HeadingDetector`, `TableOfContents`, `BookBuilder`, `ReadingProgress`,
   `Paginator`, `Sentences`, `HighlightSpans`,
   `UsageTimeline`, `UsagePressure`,
-  `CompulsionDetector`, `DistractionPolicy`, `MemoryTrimPolicy`.
+  `CompulsionDetector`, `DistractionPolicy`, `MemoryTrimPolicy`, `Corners`,
+  `Homography`, `DocumentAspect`, `CaptureDecision`, `Stillness`, `PdfPageSize`,
+  `ScanNaming`.
 - **Lo que no cuenta como uso**: Zen, `com.android.systemui` y cualquier paquete capaz
   de ser pantalla de inicio. Zen no implementa Recientes, así que el gesto de recientes
   abre el `RecentsActivity` del launcher de fábrica: en el dispositivo salían 66
@@ -312,11 +362,20 @@ presentation/  theme, components, una pantalla + ViewModel por destino
   de dos palabras. Fuera del lector no se usan ni una cosa ni la otra. Colores en `ZenColors`, espaciado en `ZenSpacing`, estilos
   con nombre de rol en `ZenTextStyles`, transiciones en `ZenMotion`: no fijes números
   sueltos en una pantalla.
+- **Ningún test JVM puede comprobar la detección sobre una foto real.** Nada de OpenCV ni
+  de ML Kit se ejecuta en la JVM. Lo que sí se prueba —y es lo que decide— son las
+  funciones puras: el ordenado de esquinas contra números escritos a mano, y la
+  recuperación de proporciones **contra proyecciones sintetizadas**, tomando un rectángulo
+  de proporción conocida y proyectándolo con una cámara estenopeica inventada. La calidad
+  de la detección con luz real se mira **instalando**, como los truncamientos de texto.
 - **Ningún permiso nuevo sin justificarlo en el README.** Lectura no añadió ninguno: el
   selector de documentos del sistema no pide permiso —devuelve solo el fichero elegido—
-  y la extracción de texto es del propio Android. Solo hay cinco
+  y la extracción de texto es del propio Android. Solo hay seis
   (`POST_NOTIFICATIONS`, `USE_EXACT_ALARM`, `RECORD_AUDIO`, `PACKAGE_USAGE_STATS`,
-  `INTERNET`) y los cinco degradan solos. `INTERNET` lo usan **dos** funciones y solo
+  `INTERNET`, `CAMERA`) y los seis degradan solos. `CAMERA` lo pide **solo el escáner** y
+  solo al abrirlo; no lleva ningún permiso de almacenamiento al lado porque `MediaStore`
+  no lo exige para lo que escribe la propia aplicación, igual que el selector de
+  documentos de Lectura no pide nada. `INTERNET` lo usan **dos** funciones y solo
   dos, el tiempo y las noticias: un tercer consumidor de red es una decisión de producto,
   no un detalle. `PACKAGE_USAGE_STATS` está declarado pero **no se concede en la
   instalación**: es `signature|appop` y lo otorga el usuario a mano en Ajustes de

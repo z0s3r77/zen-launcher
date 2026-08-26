@@ -49,6 +49,8 @@ import com.zenlauncher.zen.presentation.reading.LibraryScreen
 import com.zenlauncher.zen.presentation.reading.LibraryViewModel
 import com.zenlauncher.zen.presentation.reading.ReaderScreen
 import com.zenlauncher.zen.presentation.reading.ReaderViewModel
+import com.zenlauncher.zen.presentation.scanner.ScannerRoute
+import com.zenlauncher.zen.presentation.scanner.ScannerViewModel
 import com.zenlauncher.zen.presentation.session.SessionSetupScreen
 import com.zenlauncher.zen.presentation.session.SessionViewModel
 import com.zenlauncher.zen.presentation.settings.SettingsScreen
@@ -118,6 +120,7 @@ fun ZenNavHost(
                 onOpenHomeApps = { navController.navigate(ZenRoute.HOME_APPS) },
                 onOpenNotes = { navController.navigate(ZenRoute.NOTES) },
                 onOpenReading = { navController.navigate(ZenRoute.READING) },
+                onOpenScanner = { navController.navigate(ZenRoute.SCANNER) },
                 onStartSession = { navController.navigate(ZenRoute.SESSION_SETUP) },
                 onBreathe = { navController.navigate(ZenRoute.BREATHE) },
                 onOpenNews = { navController.navigate(ZenRoute.NEWS) },
@@ -398,6 +401,24 @@ fun ZenNavHost(
                 onDeleteHighlight = readerViewModel::deleteHighlight,
                 onDelete = readerViewModel::delete,
                 onBack = navController::popBackStack,
+            )
+        }
+
+        composable(ZenRoute.SCANNER) {
+            // El ViewModel cuelga de esta entrada de la pila de navegacion, asi que al
+            // salir se limpia solo: con el se van el detector, el reconocedor de texto, el
+            // modelo de OCR y la memoria nativa de los Mat. Es deliberado que no viva en el
+            // ambito de la Activity como el de la home.
+            //
+            // Lo que **no** se recupera es la biblioteca nativa en si: una vez cargada se
+            // queda mapeada hasta que muera el proceso, porque Java no puede descargarla.
+            // Comprobado en el dispositivo. Lo que se acota aqui es lo que crece —los Mat
+            // y el modelo—, no los 15 MB de codigo mapeado.
+            val scannerViewModel: ScannerViewModel = viewModel(factory = factory)
+
+            ScannerRoute(
+                viewModel = scannerViewModel,
+                onLeave = navController::popBackStack,
             )
         }
 

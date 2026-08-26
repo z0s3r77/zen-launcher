@@ -18,6 +18,7 @@ import com.zenlauncher.zen.presentation.notes.QuickNoteViewModel
 import com.zenlauncher.zen.presentation.notifications.NotificationsViewModel
 import com.zenlauncher.zen.presentation.reading.LibraryViewModel
 import com.zenlauncher.zen.presentation.reading.ReaderViewModel
+import com.zenlauncher.zen.presentation.scanner.ScannerViewModel
 import com.zenlauncher.zen.presentation.session.SessionViewModel
 import com.zenlauncher.zen.presentation.settings.SettingsViewModel
 import com.zenlauncher.zen.presentation.stats.StatsViewModel
@@ -141,6 +142,16 @@ fun zenViewModelFactory(container: ZenContainer): ViewModelProvider.Factory = vi
             covers = container.bookCovers,
             preferences = container.preferences,
             clock = container.clock,
+            appScope = container.appScope,
+        )
+    }
+    initializer {
+        ScannerViewModel(
+            detector = container.documentDetector,
+            processor = container.documentProcessor,
+            recognizer = container.textRecognizer,
+            workspace = container.scanWorkspace,
+            exporter = container.scanExporter,
             appScope = container.appScope,
         )
     }

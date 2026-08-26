@@ -86,6 +86,16 @@ object ZenRoute {
     fun book(id: String): String = "$BOOK/$id"
 
     /**
+     * El escaner de documentos. Se llega **solo desde el menu** de la pantalla de inicio.
+     *
+     * No es una celda de la reticula ni una fila fija, y no por descuido: la home no crece,
+     * las dos unicas celdas que no son aplicaciones ya son Notas y Lectura, y una tercera
+     * empujaria el reloj. Escanear ademas se hace de vez en cuando —un recibo, unos
+     * apuntes—, no cincuenta veces al dia, que es justo el perfil de lo que vive plegado.
+     */
+    const val SCANNER = "scanner"
+
+    /**
      * Unica ruta con argumento opcional: el paquete cuya marca se toco, para abrir la lista ya
      * puesta en esa aplicacion. Es opcional —desde el menu se entra sin el— y por eso
      * va como parametro de consulta y no como segmento obligatorio.

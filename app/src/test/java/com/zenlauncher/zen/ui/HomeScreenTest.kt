@@ -90,6 +90,7 @@ class HomeScreenTest {
                     onOpenHomeApps = { homeAppsOpened++ },
                     onOpenNotes = { notesOpened++ },
                     onOpenReading = { readingOpened++ },
+                    onOpenScanner = {},
                     onStartSession = { sessionsStarted++ },
                     onBreathe = { breathsOpened++ },
                     onOpenNews = { newsOpened++ },

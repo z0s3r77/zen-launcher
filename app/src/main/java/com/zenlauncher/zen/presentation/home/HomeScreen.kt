@@ -95,6 +95,7 @@ fun HomeScreen(
     onOpenHomeApps: () -> Unit,
     onOpenNotes: () -> Unit,
     onOpenReading: () -> Unit,
+    onOpenScanner: () -> Unit,
     onStartSession: () -> Unit,
     onBreathe: () -> Unit,
     onOpenNews: () -> Unit,
@@ -181,6 +182,7 @@ fun HomeScreen(
                         state = state,
                         usageReading = usageReading,
                         onStartSession = onStartSession,
+                        onOpenScanner = onOpenScanner,
                         onOpenNotifications = onOpenNotifications,
                         onOpenRestricted = onOpenRestricted,
                         onOpenStats = onOpenStats,
@@ -425,6 +427,7 @@ private fun ColumnScope.MenuBody(
     state: HomeUiState,
     usageReading: UsageReading,
     onStartSession: () -> Unit,
+    onOpenScanner: () -> Unit,
     onOpenNotifications: (String?) -> Unit,
     onOpenRestricted: () -> Unit,
     onOpenStats: () -> Unit,
@@ -444,6 +447,7 @@ private fun ColumnScope.MenuBody(
         onOpenNotifications = { onOpenNotifications(null) },
         onExitZen = onExitZen,
         onStartSession = onStartSession,
+        onOpenScanner = onOpenScanner,
         onOpenRestricted = onOpenRestricted,
         onOpenStats = onOpenStats,
         onOpenUsage = onOpenUsage,
@@ -500,6 +504,7 @@ private fun HomeActions(
     onOpenNotifications: () -> Unit,
     onExitZen: () -> Unit,
     onStartSession: () -> Unit,
+    onOpenScanner: () -> Unit,
     onOpenRestricted: () -> Unit,
     onOpenStats: () -> Unit,
     onOpenUsage: () -> Unit,
@@ -509,6 +514,16 @@ private fun HomeActions(
     ZenListRow(
         label = stringResource(R.string.action_start_zen),
         onClick = onStartSession,
+    )
+    ZenHairline()
+    // Escanear entra por el menu y no por la reticula: la home no crece, las dos unicas
+    // celdas que no son aplicaciones ya son Notas y Lectura, y una tercera empujaria el
+    // reloj fuera de su sitio. Ademas se escanea de vez en cuando, no cincuenta veces al
+    // dia, que es el perfil exacto de lo que vive plegado aqui.
+    ZenListRow(
+        label = stringResource(R.string.action_scan),
+        labelColor = ZenColors.Secondary,
+        onClick = onOpenScanner,
     )
     ZenHairline()
     // La via de siempre es la marca de la propia aplicacion; esta fila esta para lo que

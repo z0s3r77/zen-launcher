@@ -478,6 +478,87 @@
     <string name="reader_delete">QUITAR EL LIBRO</string>
     <string name="reader_delete_label">Quitar este libro de la biblioteca</string>
 
+
+    <!-- Escaner de documentos -->
+    <string name="action_scan">Escanear</string>
+    <string name="scanner_title">ESCANEAR</string>
+    <string name="scanner_review_title">REVISAR</string>
+    <string name="scanner_pages_description">%1$d páginas escaneadas</string>
+    <string name="scanner_page_of">%1$d / %2$d</string>
+    <string name="scanner_page_description">Página escaneada %1$d</string>
+    <string name="scanner_pages">%1$d PÁGINAS</string>
+    <string name="scanner_open_last_label">Revisar la última página</string>
+
+    <string name="scanner_hint_starting">ABRIENDO LA CÁMARA</string>
+    <string name="scanner_hint_searching">BUSCANDO UNA HOJA</string>
+    <string name="scanner_hint_too_far">ACÉRCATE MÁS</string>
+    <string name="scanner_hint_hold">SUJETA QUIETO</string>
+    <string name="scanner_hint_ready">LISTO</string>
+    <string name="scanner_hint_capturing">CAPTURANDO</string>
+    <string name="scanner_hint_processing">PROCESANDO</string>
+    <string name="scanner_hint_saving">GUARDANDO</string>
+
+    <string name="scanner_capture_label">Hacer la foto</string>
+    <string name="scanner_auto_on">AUTO</string>
+    <string name="scanner_auto_off">MANUAL</string>
+    <string name="scanner_auto_on_label">Activar la captura automática</string>
+    <string name="scanner_auto_off_label">Desactivar la captura automática</string>
+    <string name="scanner_light_on">LUZ</string>
+    <string name="scanner_light_off">SIN LUZ</string>
+
+    <string name="scanner_camera_needed">El escáner necesita la cámara. Solo se usa mientras esta pantalla está abierta y nada de lo que ve sale del teléfono.</string>
+    <string name="scanner_camera_denied">Sin permiso de cámara no hay escáner. Puedes concederlo aquí o desde los ajustes de Android.</string>
+    <string name="scanner_camera_grant">DAR PERMISO</string>
+
+    <string name="scanner_corners">AJUSTAR</string>
+    <string name="scanner_corners_done">HECHO</string>
+    <string name="scanner_corners_description">Arrastra las cuatro esquinas hasta los bordes de la hoja</string>
+    <string name="scanner_rotate">GIRAR</string>
+    <string name="scanner_rotate_label">Girar un cuarto de vuelta</string>
+    <string name="scanner_text">TEXTO</string>
+    <string name="scanner_retake">REPETIR</string>
+    <string name="scanner_retake_label">Descartar esta página y volver a la cámara</string>
+    <string name="scanner_next_page">OTRA PÁGINA</string>
+    <string name="scanner_next_page_label">Guardar esta página y escanear otra</string>
+    <string name="scanner_save_image">IMAGEN</string>
+    <string name="scanner_save_pdf">PDF</string>
+    <string name="scanner_save_pdf_label">Guardar todas las páginas como un PDF</string>
+    <string name="scanner_delete_page">QUITAR ESTA PÁGINA</string>
+    <string name="scanner_delete_page_label">Quitar esta página del documento</string>
+    <string name="scanner_understood">ENTENDIDO</string>
+    <string name="scanner_retry">REINTENTAR</string>
+    <string name="scanner_leave">SALIR</string>
+
+    <string name="scanner_filter_original">ORIGINAL</string>
+    <string name="scanner_filter_document">DOCUMENTO</string>
+    <string name="scanner_filter_bw">BLANCO Y NEGRO</string>
+    <string name="scanner_filter_contrast">ALTO CONTRASTE</string>
+    <string name="scanner_filter_gray">ESCALA DE GRISES</string>
+    <string name="scanner_filter_label">Usar el modo %1$s</string>
+    <string name="scanner_filter_current">MODO · %1$s</string>
+
+    <string name="scanner_blurry">La foto ha salido algo movida. Se guarda igual, pero repetirla con el móvil más quieto se leerá mejor.</string>
+    <string name="scanner_saved_in">Guardado en %1$s como %2$s.</string>
+
+    <string name="scanner_ocr_explain">El reconocimiento de texto se hace en el teléfono, sin conexión, y sobre la hoja ya enderezada y limpia.</string>
+    <string name="scanner_ocr_run">LEER EL TEXTO</string>
+    <string name="scanner_ocr_again">VOLVER A LEER</string>
+    <string name="scanner_ocr_running">LEYENDO</string>
+    <string name="scanner_ocr_copy">COPIAR</string>
+    <string name="scanner_ocr_copy_label">Copiar todo el texto de esta página</string>
+    <string name="scanner_ocr_empty">No se ha reconocido texto en esta página.</string>
+    <string name="scanner_ocr_unavailable">Este teléfono no trae el reconocedor de texto.</string>
+
+    <string name="scanner_error_camera">No se ha podido abrir la cámara. Puede que otra aplicación la esté usando.</string>
+    <string name="scanner_error_vision">Este teléfono no puede cargar la detección de documentos.</string>
+    <string name="scanner_error_capture">No se ha podido procesar la foto.</string>
+    <string name="scanner_error_no_document">No se ha encontrado ninguna hoja. Ajusta las esquinas a mano.</string>
+    <string name="scanner_error_too_small">La hoja ocupa muy poco de la foto. Acércate y repítela.</string>
+    <string name="scanner_error_save">No se ha podido guardar.</string>
+    <string name="scanner_error_space">No queda sitio en el teléfono para guardar esto.</string>
+    <string name="scanner_error_ocr">No se ha podido leer el texto. El documento sigue guardado.</string>
+    <string name="scanner_error_unknown">Algo no ha salido bien.</string>
+
     <plurals name="usage_openings">
         <item quantity="one">%1$d APERTURA</item>
         <item quantity="other">%1$d APERTURAS</item>

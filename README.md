@@ -16,6 +16,12 @@ Dispositivo objetivo: **Nothing Phone (2a)** con Nothing OS 4.1 / Android 16.
 
 ## Qué hace
 
+- **Escáner de documentos** — apunta a una hoja, Zen le encuentra las cuatro esquinas en
+  tiempo real, espera a que el móvil esté quieto, dispara solo, corrige la perspectiva,
+  recorta el fondo y la deja con cara de escaneo. Se revisa, se ajustan las esquinas a
+  mano si hace falta, se elige el modo y se guarda como imagen o como PDF de varias
+  páginas. Opcionalmente lee el texto, sin conexión. Ver
+  [El escáner de documentos](#el-escáner-de-documentos).
 - **Lectura** — importa un PDF y lo convierte en un libro reflowable: extrae el texto,
   quita cabeceras y folios, rehace los párrafos, detecta el índice y lo deja para leer a
   página completa, con marcas, subrayado y notas. Todo local, sin conexión y sin una sola
@@ -549,6 +555,179 @@ lectura y no por fecha: una lista de marcas es un recorrido del libro.
 
 ---
 
+## El escáner de documentos
+
+Se entra desde **Menú → Escanear**, y solo desde ahí. No es una celda de la retícula ni
+una fila fija de la pantalla de inicio: la home no crece, las dos únicas celdas que no
+son aplicaciones ya son Notas y Lectura, y una tercera empujaría el reloj fuera de su
+sitio. Escanear además se hace de vez en cuando —un recibo, unos apuntes, un impreso—,
+no cincuenta veces al día, que es el perfil exacto de lo que vive plegado en el menú.
+
+### Lo que hace, en orden
+
+1. **Detecta la hoja en cada frame** y dibuja el marco encima de la cámara.
+2. **Espera a que el encuadre sirva**: cuatro esquinas fiables, la hoja ocupando al menos
+   una cuarta parte de la imagen, el móvil quieto y las esquinas sin saltos durante diez
+   frames seguidos.
+3. **Dispara solo** al cumplirse todo. También hay obturador, y un modo MANUAL que apaga
+   el disparo automático.
+4. **Corrige la perspectiva** con una homografía y **recorta** al borde del papel.
+5. **Mejora la imagen**: quita la sombra, aplana la iluminación y deja el fondo blanco.
+6. **Se revisa**: ajustar las cuatro esquinas arrastrándolas, girar, cambiar de modo,
+   repetir la foto o pasar a la siguiente página.
+7. **Se guarda** como imagen en `Imágenes/Zen` o como **PDF** en `Documentos/Zen`, una
+   página del PDF por escaneo.
+8. **Opcionalmente lee el texto** de la página, en el propio teléfono y sin conexión.
+
+En todo momento el estado se lee **como texto** —BUSCANDO UNA HOJA, ACÉRCATE MÁS, SUJETA
+QUIETO, LISTO—, no solo como un marco que cambia de tono.
+
+### La detección es visión por computador clásica, no un modelo
+
+Gris, reducción de ruido que conserva bordes, detección de bordes, contornos, polígonos
+de cuatro vértices y validación de forma. Sin modelo, sin red y sin nada aprendido.
+
+Los dos umbrales de Canny **no son constantes**: salen del corte que calcula Otsu sobre
+la propia imagen. Es lo que hace que funcione igual en una cocina de noche y junto a una
+ventana; fijar 50 y 150 obliga a elegir una iluminación y fallar en las demás.
+
+Hay **dos estrategias y se prueban en orden**. La primera busca el canto del papel como
+un salto de brillo, y es la buena con una hoja sobre una mesa de otro color. Si no
+encuentra nada entra la segunda, que separa papel y fondo por brillo con Otsu y salva el
+caso contrario: folio blanco sobre mesa clara, donde casi no hay canto. La barata primero
+porque esto corre quince veces por segundo.
+
+Se mira **la imagen reducida a 480 px de lado largo**, y no solo por velocidad: a
+resolución completa el grano del papel y la trama del texto son bordes tan válidos como
+el borde de la hoja, y el trazado de contornos se pierde entre ellos.
+
+### Las proporciones se recuperan, no se miden
+
+Es la parte que más se nota y la que más fácil sale mal. Un A4 fotografiado de lado se
+proyecta como un trapecio, y estirar ese trapecio hasta el rectángulo que envuelve sus
+esquinas da un documento **aplastado o estirado**: los lados que están más lejos de la
+cámara salen más cortos de lo que son, y la media de los lados hereda ese error.
+
+Zen recupera la proporción real con la solución cerrada de Zhang y He: si se sabe que el
+original **era** un rectángulo, la forma del trapecio contiene a la vez la distancia
+focal de la cámara y la relación ancho/alto, y las dos se despejan sin calibrar nada.
+
+Hay un caso en el que eso **no se puede**: cuando el móvil está alineado con la hoja en
+uno de los dos ejes, uno de los pares de lados sale paralelo en la imagen, no tiene punto
+de fuga y la focal deja de estar en la foto. No es raro —es lo que hace quien apoya los
+codos y mira la mesa desde arriba—. Ahí se supone una focal de cámara de móvil corriente
+(unos 60° de campo). Es una suposición declarada, y aun así acierta mucho más que medir:
+sobre cámaras sintetizadas con focales muy distintas de la supuesta, el error se queda
+por debajo del 21 % en el peor caso, frente al 53 % de la media de los lados. Está fijado
+en `DocumentAspectTest`.
+
+### El modo Documento divide, no resta
+
+Los cinco modos son Original, Documento, Blanco y negro, Alto contraste y Escala de
+grises. El que importa es **Documento**.
+
+Estima **la luz que había** —un cierre morfológico con un elemento más grande que
+cualquier letra se come el texto y deja solo el degradado de la iluminación— y divide la
+imagen por esa estimación. Es una división y no una resta porque la sombra **multiplica**
+la luz que llega al papel: restando, el texto de la zona oscura se aclararía tanto como
+el fondo y se perdería. Después se estiran los niveles entre percentiles de la propia
+imagen, no entre su mínimo y su máximo: un solo píxel quemado por un reflejo fijaría el
+rango entero y el estirado no haría nada.
+
+### El original no se toca nunca
+
+Cada página guarda **tres ficheros**, y cada uno está por algo:
+
+- la **foto tal cual salió de la cámara**, que es lo que permite volver a mover las
+  esquinas media hora después sin haber perdido nada. Sin ella, arrastrar una esquina
+  hacia fuera sacaría píxeles que ya no existen;
+- la **hoja enderezada sin filtro**, de la que salen todos los modos, para que cambiar de
+  filtro nunca degrade lo anterior;
+- la **enderezada con el modo puesto**, que es lo que se ve y lo que se guarda.
+
+Cambiar de modo **no vuelve a enderezar**: sería repetir lo más caro para nada.
+
+Los tres viven en la caché privada de la aplicación, no en `filesDir`, y **se borran al
+salir del escáner**. Un escaneo a medias no es un documento del usuario: si el disco se
+llena, el sistema puede tirarlos él mismo en lugar de avisar de que se ha quedado sin
+sitio por culpa del launcher.
+
+### El OCR es local y el PDF lleva capa de texto
+
+ML Kit con el modelo **dentro del APK**, no descargado por Google Play Services: en un
+teléfono recién estrenado y sin red funciona igual. Escritura latina, que es la del
+castellano. Se ejecuta **después** de enderezar y filtrar, porque el reconocimiento
+mejora mucho con el texto ya recto y el fondo ya blanco.
+
+**Zen sigue teniendo dos consumidores de `INTERNET`, el tiempo y las noticias.** Ni la
+detección, ni el enderezado, ni el OCR abren una conexión.
+
+Si hay texto reconocido, el PDF lo lleva como capa seleccionable. El texto se pinta
+**primero y la imagen encima**, y no al revés con tinta transparente: `PdfDocument` dibuja
+a través de Skia, que no expone el modo de renderizado invisible del formato PDF —el modo
+3, que es como lo hacen las herramientas de escritorio— y además puede descartar del todo
+un trazo con alfa cero. Pintando debajo, el texto queda igual de escondido a la vista y
+sigue estando en la capa de texto del documento, que es de donde lo saca el visor al
+seleccionar o al buscar.
+
+### El precio: es la única dependencia nativa, y pesa
+
+OpenCV son **24,7 MB** de `.so` y el modelo de OCR otros **11 MB**. El APK pasa de unos
+8 MB a **73 MB**, y son megabytes cargados en el proceso de la **pantalla de inicio**,
+que es justo el que el sistema no debería tener que matar (ver
+[la RAM](#la-ram-del-teléfono-no-se-puede-limpiar)).
+
+Se compensa por tres vías, y ninguna es opcional:
+
+- **`abiFilters` a `arm64-v8a`**, la del Nothing Phone (2a). Empaquetar las otras tres
+  ABI multiplicaría el peso por cuatro para nada. Consecuencia: `connectedDebugAndroidTest`
+  necesita un dispositivo arm64; en un emulador x86_64 hay que añadir `"x86_64"` a esa
+  lista en `app/build.gradle.kts`.
+- **Todo es perezoso.** El detector, el procesador, el reconocedor de texto y el almacén
+  se construyen la primera vez que se usan: quien no abre el escáner no paga ni un byte.
+  Es la misma cuenta que el tiempo y las noticias, solo que aquí la factura es mucho más
+  alta.
+- **El ViewModel cuelga de la entrada de navegación**, no del ámbito de la Activity: al
+  salir del escáner se limpia solo, y con él se van el detector, el modelo de OCR y la
+  memoria nativa de los `Mat`.
+
+  **Lo que no se recupera es la biblioteca nativa.** Una vez que `System.loadLibrary` ha
+  corrido, se queda mapeada hasta que muera el proceso: Java no tiene forma de
+  descargarla. Medido en el dispositivo, tras usar el escáner y volver a la pantalla de
+  inicio el proceso conserva unos 15 MB de `.so mmap`. La pereza sirve porque quien nunca
+  abre el escáner no paga nada, y quien lo abre paga una vez; no porque se pueda devolver.
+
+Además, la memoria nativa se suelta a mano. Un `Mat` vive fuera del montón de Java y el
+recolector de basura no lo ve; la detección crea media docena por frame quince veces por
+segundo. Sin soltarlos, el escáner reserva cientos de megabytes en un minuto. Ver
+`MatScope`.
+
+### Rendimiento: tres ritmos, no uno
+
+- **Por frame**, en el hilo de análisis de CameraX: solo detectar y decidir. Nada grande
+  reservado, nada de disco y nada en el hilo principal. Además se limita a unos 15 frames
+  por segundo: la mano no se mueve más rápido que eso y cada frame de más es batería.
+- **Por captura**: enderezar, filtrar y guardar. Caro, pero pasa una vez y el usuario ya
+  está esperando.
+- **A petición**: OCR y exportar.
+
+El análisis pide **640×480** y la captura **la mayor resolución disponible**. Detectar
+sobre frames de 12 megapíxeles sería mover 48 MB por frame para tirarlos; capturar a
+640×480 daría un documento ilegible.
+
+### Qué no hace
+
+- **No comprime en lote ni sube nada a ninguna parte.** No hay cuenta, ni carpeta
+  sincronizada, ni "mis documentos" dentro de Zen: lo escaneado sale a la galería y a la
+  carpeta de documentos del teléfono, y ahí se acaba la responsabilidad de un launcher.
+- **No guarda un historial de escaneos.** Al salir, lo que no se guardó se borra.
+- **No reordena las páginas** ni permite insertar una en medio. El PDF sale en el orden
+  en que se escanearon.
+- **No lee códigos QR ni de barras**, aunque OpenCV sepa. Sería una segunda función
+  metida en la misma pantalla.
+
+---
+
 ## Cómo se sale
 
 Zen no bloquea nada en v0.1: recientes, panel de notificaciones y ajustes rápidos
@@ -970,6 +1149,19 @@ ejercitado cuando llegue la implementación privilegiada.
   revoca en el mismo sitio. Lo leído vive en memoria mientras el proceso existe, no se
   escribe en disco y no sale del dispositivo.
 
+- **`CAMERA`** — escanear un documento, y nada más. Se pide **al abrir el escáner**, no
+  al instalar ni al arrancar: quien no entra ahí no ve nunca el diálogo, igual que quien
+  escribe sus notas con el teclado no ve el del micrófono. Denegarlo no rompe nada: la
+  pantalla lo dice en texto y ofrece volver a pedirlo. La cámara se declara además como
+  `uses-feature` **no obligatoria**, para que Google Play no esconda el launcher entero en
+  un dispositivo sin cámara.
+
+  **No lleva ningún permiso de almacenamiento al lado**, y es a propósito: lo escaneado
+  sale por `MediaStore`, que no exige ninguno para los ficheros que crea la propia
+  aplicación, y lo que está a medias vive en la caché privada de Zen. Mismo planteamiento
+  que el selector de documentos de Lectura y el de fotos de Notas: el permiso se evita
+  eligiendo la API correcta, no pidiéndolo por si acaso.
+
 - **`INTERNET`** — dos funciones y ni una más: **el tiempo** y **la portada de
   noticias**. Las dos son peticiones `GET` de ida, sin clave, sin cuenta y sin
   identificador, y las dos están apagadas mientras nadie las pida.
@@ -991,14 +1183,20 @@ ejercitado cuando llegue la implementación privilegiada.
 devuelve solo el fichero elegido— y la extracción de texto es del propio Android: no usa
 `INTERNET` ni ninguna otra cosa. Ver [Lectura](#lectura).
 
-Los cinco **degradan solos**: sin alarma exacta se usa una inexacta, sin notificaciones la
+**El escáner añade uno solo, `CAMERA`**, y no toca `INTERNET`: la detección, el
+enderezado y el reconocimiento de texto son todos locales, y el modelo de OCR va
+empaquetado en el APK. Ver [El escáner de documentos](#el-escáner-de-documentos).
+
+Los seis **degradan solos**: sin alarma exacta se usa una inexacta, sin notificaciones la
 sesión se cierra igualmente al volver a Zen, y el dictado desaparece por triplicado —sin
 reconocedor de dispositivo la fila no se pinta, sin el paquete de voz del idioma tampoco,
 y si se deniega el permiso la fila lo dice como texto y el teclado sigue igual; y sin
 acceso de uso no hay pulso ni aviso de distracción y la pantalla de Uso dice que no hay
 medida en lugar de enseñar un cero. Y sin red, la franja de la pantalla de inicio se
 queda sin el glifo del tiempo, las noticias enseñan la última portada que se bajara
-—diciendo que es de otro día— y todo lo demás sigue igual. Ninguno bloquea el flujo.
+—diciendo que es de otro día— y todo lo demás sigue igual. Sin cámara, o sin permiso, el
+escáner lo dice en pantalla y ofrece salir; si la librería nativa no cargara en un
+teléfono, también. Ninguno bloquea el flujo.
 
 Hay un tercero que **no se pide**: `BIND_NOTIFICATION_LISTENER_SERVICE` lo declara el
 servicio para que solo el sistema pueda enlazarlo, y la concesión la da el usuario a mano
@@ -1036,7 +1234,7 @@ Cambiar de v0.1 a v0.2 debería ser sustituir las implementaciones registradas e
 ./gradlew testDebugUnitTest
 ```
 
-670 tests en la JVM, sin dispositivo. Cubren el cálculo del tiempo restante (incluidos
+926 tests en la JVM, sin dispositivo. Cubren el cálculo del tiempo restante (incluidos
 reinicio y manipulación del reloj), sesión completada y abandonada, duración registrada,
 idempotencia del cierre, cálculo de batería consumida —con sus casos no fiables—,
 persistencia en SQLite y en DataStore, selección de aplicaciones, la resolución de las
@@ -1049,7 +1247,22 @@ desordenados—, los cuatro escalones del pulso, las tres formas de conducta com
 con sus exentas, la espera del aviso y la política de memoria, el corte diario de la
 portada de noticias y su análisis contra una portada real guardada —los siete puntos,
 los enlaces de otro dominio que se descartan y las secciones de abajo que no se cuelan—,
-y siete ViewModel.
+y ocho ViewModel.
+
+Del **escáner** se cubre todo lo que no es nativo, que es donde están las decisiones:
+el ordenado de las cuatro esquinas —empiece el contorno por donde empiece y lo recorra en
+el sentido que lo recorra— y el descarte de las formas que no pueden ser una hoja; la
+homografía, comprobando que un trapecio se convierte en rectángulo, que el centro **no**
+va al centro (o sea, que hay perspectiva de verdad y no un simple estirado), que ir y
+volver devuelve el punto de partida y que un cuadrilátero degenerado da `null` en vez de
+lanzar; la recuperación de proporciones **contra proyecciones sintetizadas a mano**, con
+un rectángulo de proporción conocida, una cámara estenopeica inventada y un abanico de
+posturas que a mano no se conseguiría repetir; la política de captura automática entera;
+la quietud del acelerómetro; el tamaño de las hojas del PDF y los nombres de fichero.
+
+Nada de OpenCV ni de ML Kit se ejecuta en la JVM, así que la calidad de la detección
+sobre fotos reales **no tiene test y se comprueba en el dispositivo**, igual que los
+truncamientos de texto del buscador de ciudades.
 
 Las pantallas se cubren con **tests de UI de Compose sobre Robolectric**, también sin
 dispositivo: `HomeScreenTest`, `SettingsScreenTest`, `NotificationsScreenTest`,
@@ -1082,3 +1295,10 @@ abrir Zen, la pantalla de resumen apareció con los datos correctos.
 
 Archivo y DM Mono se distribuyen bajo SIL Open Font License 1.1. El texto de cada
 licencia está en `app/src/main/assets/licenses/`.
+
+**OpenCV 4.14.0** (`org.opencv:opencv`) se distribuye bajo Apache License 2.0, y es la
+única dependencia nativa de Zen: detección del documento y corrección de perspectiva del
+escáner. **ML Kit Text Recognition** (`com.google.mlkit:text-recognition`, variante con el
+modelo empaquetado) se distribuye bajo los términos de Google APIs Terms of Service; el
+fichero de licencias de terceros que trae el propio artefacto viaja dentro del AAR. Ver
+[El escáner de documentos](#el-escáner-de-documentos).

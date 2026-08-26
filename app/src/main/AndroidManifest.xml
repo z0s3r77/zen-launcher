@@ -3,7 +3,7 @@
     xmlns:tools="http://schemas.android.com/tools">
 
     <!--
-      Cinco permisos, cada uno atado a la unica funcion que lo necesita, y los cinco
+      Seis permisos, cada uno atado a la unica funcion que lo necesita, y los seis
       degradan solos si no se conceden.
     -->
 
@@ -73,6 +73,37 @@
       franja de la pantalla de inicio se queda sin el glifo y todo lo demas sigue igual.
     -->
     <uses-permission android:name="android.permission.INTERNET" />
+
+    <!--
+      Escanear un documento, y NADA MAS. Se pide al abrir el escaner, nunca antes: quien
+      no entra ahi no ve el dialogo, igual que quien escribe sus notas con el teclado no
+      ve el del microfono.
+
+      Denegarlo no rompe nada: la pantalla lo dice en texto y ofrece volver a pedirlo.
+
+      No hay ningun permiso de almacenamiento al lado, y es a proposito. Lo escaneado sale
+      por `MediaStore`, que no exige ninguno para los ficheros que crea la propia
+      aplicacion, y lo que esta a medias vive en la cache privada de Zen. Es el mismo
+      planteamiento del selector de documentos de Lectura y el de fotos de Notas: el
+      permiso se evita eligiendo la API correcta, no pidiendolo por si acaso.
+
+      La camara es ademas la unica funcion nueva que trae codigo nativo (OpenCV) y un
+      modelo (ML Kit); ninguno de los dos sale a internet, asi que Zen sigue teniendo dos
+      consumidores de INTERNET y no tres.
+    -->
+    <uses-permission android:name="android.permission.CAMERA" />
+
+    <!--
+      La camara es opcional para instalar: sin ella todo Zen funciona salvo el escaner,
+      que lo dice en pantalla. Sin este `required=false`, Google Play esconderia el
+      launcher entero en cualquier dispositivo sin camara.
+    -->
+    <uses-feature
+        android:name="android.hardware.camera"
+        android:required="false" />
+    <uses-feature
+        android:name="android.hardware.camera.autofocus"
+        android:required="false" />
 
     <!--
       Visibilidad de paquetes para un launcher: basta declarar el intent de actividades
