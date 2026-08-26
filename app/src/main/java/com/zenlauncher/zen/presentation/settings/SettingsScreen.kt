@@ -34,6 +34,7 @@ fun SettingsScreen(
     onToggleNowPlaying: () -> Unit,
     onOpenBatterySaver: () -> Unit,
     onOpenAccessibility: () -> Unit,
+    onOpenWeather: () -> Unit,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -88,6 +89,21 @@ fun SettingsScreen(
                                 if (state.batterySaverEnabled) R.string.settings_state_active
                                 else R.string.settings_state_inactive,
                             ),
+                        )
+                    },
+                )
+                ZenHairline()
+
+                // El tiempo es lo unico de Zen que usa internet, asi que su fila dice
+                // en el propio rotulo si esta encendido: sin ciudad no se conecta a nada.
+                ZenListRow(
+                    label = stringResource(R.string.settings_weather),
+                    labelColor = ZenColors.Secondary,
+                    onClick = onOpenWeather,
+                    trailing = {
+                        MonoLabel(
+                            text = state.weatherPlaceName
+                                ?: stringResource(R.string.settings_weather_none),
                         )
                     },
                 )

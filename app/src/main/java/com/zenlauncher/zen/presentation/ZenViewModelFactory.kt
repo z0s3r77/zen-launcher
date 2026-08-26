@@ -8,13 +8,21 @@ import com.zenlauncher.zen.presentation.apps.AppDrawerViewModel
 import com.zenlauncher.zen.presentation.apps.HomeAppsViewModel
 import com.zenlauncher.zen.presentation.apps.RestrictedAppsViewModel
 import com.zenlauncher.zen.presentation.home.HomeViewModel
+import com.zenlauncher.zen.presentation.news.NewsViewModel
+import com.zenlauncher.zen.presentation.notes.DevelopIdeaViewModel
 import com.zenlauncher.zen.presentation.notes.NoteDetailViewModel
 import com.zenlauncher.zen.presentation.notes.NotesViewModel
+import com.zenlauncher.zen.presentation.notes.ProjectDetailViewModel
+import com.zenlauncher.zen.presentation.notes.ProjectsViewModel
 import com.zenlauncher.zen.presentation.notes.QuickNoteViewModel
 import com.zenlauncher.zen.presentation.notifications.NotificationsViewModel
+import com.zenlauncher.zen.presentation.reading.LibraryViewModel
+import com.zenlauncher.zen.presentation.reading.ReaderViewModel
 import com.zenlauncher.zen.presentation.session.SessionViewModel
 import com.zenlauncher.zen.presentation.settings.SettingsViewModel
 import com.zenlauncher.zen.presentation.stats.StatsViewModel
+import com.zenlauncher.zen.presentation.usage.UsageViewModel
+import com.zenlauncher.zen.presentation.weather.WeatherViewModel
 
 /**
  * Une el contenedor manual con los ViewModel. Al declararse en un solo sitio, cambiar
@@ -75,6 +83,7 @@ fun zenViewModelFactory(container: ZenContainer): ViewModelProvider.Factory = vi
         NotesViewModel(
             notes = container.notes,
             indexer = container.noteIndexer,
+            clock = container.clock,
             appScope = container.appScope,
         )
     }
@@ -96,7 +105,62 @@ fun zenViewModelFactory(container: ZenContainer): ViewModelProvider.Factory = vi
         )
     }
     initializer {
+        DevelopIdeaViewModel(
+            notes = container.notes,
+            indexer = container.noteIndexer,
+            ideaDevelopment = container.ideaDevelopment,
+            dictation = container.dictation,
+            clock = container.clock,
+            appScope = container.appScope,
+        )
+    }
+    initializer {
+        ProjectsViewModel(notes = container.notes)
+    }
+    initializer {
+        ProjectDetailViewModel(notes = container.notes, appScope = container.appScope)
+    }
+    initializer {
+        NewsViewModel(
+            news = container.news,
+            preferences = container.preferences,
+            clock = container.clock,
+        )
+    }
+    initializer {
+        LibraryViewModel(
+            books = container.books,
+            importer = container.bookImporter,
+            covers = container.bookCovers,
+            appScope = container.appScope,
+        )
+    }
+    initializer {
+        ReaderViewModel(
+            books = container.books,
+            covers = container.bookCovers,
+            preferences = container.preferences,
+            clock = container.clock,
+            appScope = container.appScope,
+        )
+    }
+    initializer {
         StatsViewModel(sessions = container.sessions)
+    }
+    initializer {
+        UsageViewModel(
+            usage = container.usage,
+            installedApps = container.installedApps,
+            preferences = container.preferences,
+            clock = container.clock,
+        )
+    }
+    initializer {
+        WeatherViewModel(
+            weather = container.weather,
+            preferences = container.preferences,
+            clock = container.clock,
+        )
     }
     initializer {
         SettingsViewModel(

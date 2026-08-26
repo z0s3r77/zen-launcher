@@ -22,6 +22,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.withFrameNanos
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -44,14 +45,20 @@ import com.zenlauncher.zen.domain.system.ScreenLocker
 import com.zenlauncher.zen.domain.system.LockTaskDecision
 import com.zenlauncher.zen.domain.system.LockTaskState
 import com.zenlauncher.zen.domain.system.SystemBarsPolicy
+import com.zenlauncher.zen.domain.usage.UsageRepository
 import com.zenlauncher.zen.presentation.components.LocalDoubleTapToLock
 import com.zenlauncher.zen.presentation.home.HomeViewModel
 import com.zenlauncher.zen.presentation.navigation.ZenNavHost
+import com.zenlauncher.zen.presentation.navigation.ZenRoute
 import com.zenlauncher.zen.presentation.session.ActiveSessionScreen
 import com.zenlauncher.zen.presentation.session.SessionSummaryScreen
 import com.zenlauncher.zen.presentation.session.SessionViewModel
 import com.zenlauncher.zen.presentation.theme.ZenTheme
+import com.zenlauncher.zen.presentation.usage.DistractionScreen
+import com.zenlauncher.zen.presentation.usage.UsageViewModel
+import com.zenlauncher.zen.presentation.weather.WeatherViewModel
 import com.zenlauncher.zen.system.HomeRoleTarget
+import com.zenlauncher.zen.system.LauncherMemory
 import com.zenlauncher.zen.system.toInsetsTypeMask
 
 /**
@@ -81,6 +88,8 @@ class ZenActivity : ComponentActivity() {
                         screenLocker = container.screenLocker,
                         media = container.mediaTransport,
                         notifications = container.postedNotifications,
+                        usage = container.usage,
+                        memory = container.memory,
                         onSessionActiveChanged = ::applyLockTask,
                     )
                 }
@@ -164,6 +173,8 @@ private fun ZenRoot(
     screenLocker: ScreenLocker,
     media: MediaTransport,
     notifications: NotificationsRepository,
+    usage: UsageRepository,
+    memory: LauncherMemory,
     onSessionActiveChanged: (Boolean) -> LockTaskState,
 ) {
     val context = LocalContext.current
@@ -171,10 +182,20 @@ private fun ZenRoot(
 
     val sessionViewModel: SessionViewModel = viewModel(factory = factory)
     val homeViewModel: HomeViewModel = viewModel(factory = factory)
+    val usageViewModel: UsageViewModel = viewModel(factory = factory)
+    val weatherViewModel: WeatherViewModel = viewModel(factory = factory)
 
     val sessionState by sessionViewModel.state.collectAsStateWithLifecycle()
     val finished by sessionViewModel.finished.collectAsStateWithLifecycle()
     val confirming by sessionViewModel.confirmingFinish.collectAsStateWithLifecycle()
+    val distraction by usageViewModel.distraction.collectAsStateWithLifecycle()
+
+    // Adonde ir cuando el aviso de distraccion se cierre. No se navega desde el propio
+    // aviso: mientras esta en pantalla el NavHost no esta compuesto, y en un arranque en
+    // frio que aterrizase directamente en el aviso su grafo todavia no existiria.
+    // Llamar a `navigate` ahi tira una excepcion, y una excepcion aqui deja el telefono
+    // sin pantalla de inicio.
+    var routeAfterDistraction by remember { mutableStateOf<String?>(null) }
 
     var isDefaultLauncher by remember { mutableStateOf(context.holdsHomeRole()) }
     var doubleTapLockEnabled by remember { mutableStateOf(screenLocker.canLock()) }
@@ -193,6 +214,22 @@ private fun ZenRoot(
         ActivityResultContracts.RequestPermission(),
     ) { /* Si se deniega, la sesion funciona igual: solo se pierde el aviso. */ }
 
+    // Soltar lo que se leyo para arrancar, con la pantalla de inicio ya dibujada. Antes
+    // del primer fotograma solo retrasaria lo que el usuario esta esperando; ver
+    // [LauncherMemory].
+    LaunchedEffect(Unit) {
+        withFrameNanos { }
+        memory.releaseAfterFirstFrame()
+    }
+
+    // La navegacion diferida del aviso: se espera a que el NavHost vuelva a componerse.
+    LaunchedEffect(distraction, routeAfterDistraction) {
+        val route = routeAfterDistraction ?: return@LaunchedEffect
+        if (distraction != null) return@LaunchedEffect
+        routeAfterDistraction = null
+        navController.navigate(route)
+    }
+
     // Al volver a primer plano hay que cerrar la sesion si venció mientras no se veia,
     // y refrescar si Zen sigue siendo el launcher por defecto.
     val lifecycleOwner = LocalLifecycleOwner.current
@@ -200,6 +237,14 @@ private fun ZenRoot(
         val observer = LifecycleEventObserver { _, event ->
             if (event == Lifecycle.Event.ON_RESUME) {
                 homeViewModel.onResumed()
+                // El unico momento en que Zen mide el uso del movil: se vuelve de una
+                // aplicacion, que es cuando el dato cambio y cuando se puede decir algo
+                // sin interrumpir nada. Ver [UsageViewModel].
+                usageViewModel.refresh()
+                // Y el tiempo, con el mismo trato: al volver a la pantalla de inicio y
+                // nunca por su cuenta. Solo sale a la red si toca (ver `WeatherRefresh`)
+                // y solo si hay una ciudad elegida.
+                weatherViewModel.refresh()
                 isDefaultLauncher = context.holdsHomeRole()
                 // El administrador puede haberse revocado desde Ajustes de Android.
                 doubleTapLockEnabled = screenLocker.canLock()
@@ -236,6 +281,24 @@ private fun ZenRoot(
             )
         }
 
+        // El aviso de distraccion va por debajo de la sesion: quien esta en una sesion
+        // Zen ya tomo la decision que el aviso pretende provocar, y por encima del
+        // NavHost porque sustituye a la pantalla entera, no se pone encima de ella.
+        distraction != null -> {
+            DistractionScreen(
+                state = distraction!!,
+                onBreathe = {
+                    routeAfterDistraction = ZenRoute.BREATHE
+                    usageViewModel.dismissDistraction()
+                },
+                onStartSession = {
+                    routeAfterDistraction = ZenRoute.SESSION_SETUP
+                    usageViewModel.dismissDistraction()
+                },
+                onDismiss = usageViewModel::dismissDistraction,
+            )
+        }
+
         finished != null -> {
             BackHandler(enabled = true) { sessionViewModel.consumeSummary() }
 
@@ -244,7 +307,7 @@ private fun ZenRoot(
                 onBack = {
                     sessionViewModel.consumeSummary()
                     navController.popBackStack(
-                        route = com.zenlauncher.zen.presentation.navigation.ZenRoute.HOME,
+                        route = ZenRoute.HOME,
                         inclusive = false,
                     )
                 },
@@ -255,6 +318,9 @@ private fun ZenRoot(
             navController = navController,
             factory = factory,
             sessionViewModel = sessionViewModel,
+            homeViewModel = homeViewModel,
+            usageViewModel = usageViewModel,
+            weatherViewModel = weatherViewModel,
             isDefaultLauncher = isDefaultLauncher,
             doubleTapLockEnabled = doubleTapLockEnabled,
             nowPlayingEnabled = nowPlayingEnabled,
@@ -267,6 +333,9 @@ private fun ZenRoot(
             onGrantNotificationAccess = {
                 context.safeStartActivity(notifications.accessIntent())
             },
+            // Mismo trato que el acceso a notificaciones: se concede y se revoca en la
+            // pantalla del sistema, y al volver de ella `onResume` vuelve a preguntar.
+            onGrantUsageAccess = { context.safeStartActivity(usage.accessIntent()) },
             // Salir de Zen es elegir otra pantalla de inicio: Android no deja renunciar
             // al rol desde la aplicacion, solo abrir el selector. Se usa el mismo
             // lanzador con resultado que el resto para que al volver se refresque si

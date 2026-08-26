@@ -6,6 +6,9 @@ import androidx.datastore.preferences.core.Preferences
 import com.zenlauncher.zen.data.prefs.DataStorePreferencesRepository
 import com.zenlauncher.zen.domain.model.ActiveSession
 import com.zenlauncher.zen.domain.model.ZenDuration
+import com.zenlauncher.zen.domain.weather.WeatherCondition
+import com.zenlauncher.zen.domain.weather.WeatherPlace
+import com.zenlauncher.zen.domain.weather.WeatherReading
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -172,4 +175,70 @@ class DataStorePreferencesRepositoryTest {
 
         assertEquals(90, repository.preferredDuration.first().wholeMinutes)
     }
+    @Test
+    fun `la ciudad del tiempo sobrevive con sus coordenadas`() = runTest {
+        val madrid = WeatherPlace("Madrid, España", 40.4165, -3.7026)
+
+        repository.setWeatherPlace(madrid)
+
+        val leido = repository.weatherPlace.first()
+        assertEquals(madrid, leido)
+        // Los decimales importan: redondear la latitud mueve la consulta de ciudad.
+        assertEquals(40.4165, leido!!.latitude, 0.00001)
+    }
+
+    @Test
+    fun `la ultima lectura del tiempo se guarda con su hora`() = runTest {
+        repository.setWeatherPlace(WeatherPlace("Madrid", 40.41, -3.70))
+        val lectura = WeatherReading(18, WeatherCondition.LLUVIA, 1_700_000_000_000)
+
+        repository.setLastWeather(lectura)
+
+        assertEquals(lectura, repository.lastWeather.first())
+    }
+
+    /**
+     * Regresion: el dato de la ciudad anterior sobreviviendo a un cambio de ciudad
+     * saldria en la franja de la pantalla de inicio sin nada que lo explique, y ademas
+     * seria de un sitio donde el usuario ya no esta.
+     */
+    @Test
+    fun `cambiar de ciudad tira lo que se sabia de la anterior`() = runTest {
+        repository.setWeatherPlace(WeatherPlace("Madrid", 40.41, -3.70))
+        repository.setLastWeather(WeatherReading(18, WeatherCondition.DESPEJADO, 1_000L))
+        repository.setLastWeatherAttemptAt(1_000L)
+
+        repository.setWeatherPlace(WeatherPlace("Oviedo", 43.36, -5.84))
+
+        assertNull(repository.lastWeather.first())
+        // Y el intento tambien, para que la ciudad nueva se pida ya y no dentro de media hora.
+        assertNull(repository.lastWeatherAttemptAtMillis.first())
+    }
+
+    @Test
+    fun `quitar la ciudad lo apaga todo`() = runTest {
+        repository.setWeatherPlace(WeatherPlace("Madrid", 40.41, -3.70))
+        repository.setLastWeather(WeatherReading(18, WeatherCondition.DESPEJADO, 1_000L))
+
+        repository.setWeatherPlace(null)
+
+        assertNull(repository.weatherPlace.first())
+        assertNull(repository.lastWeather.first())
+    }
+
+    /**
+     * Regresion: `MutablePreferences.remove` devuelve el valor borrado, y sobre una
+     * clave ausente eso es un null que Kotlin desempaqueta a `long` y revienta. Limpiar
+     * una sesion que no existe pasa de verdad —al arrancar tras una limpieza del
+     * sistema— y una excepcion ahi deja el telefono sin pantalla de inicio.
+     */
+    @Test
+    fun `limpiar una sesion que no existe no revienta`() = runTest {
+        repository.clearActiveSession()
+        repository.clearPendingSummary()
+
+        assertNull(repository.activeSession.first())
+        assertNull(repository.pendingSummarySessionId.first())
+    }
+
 }

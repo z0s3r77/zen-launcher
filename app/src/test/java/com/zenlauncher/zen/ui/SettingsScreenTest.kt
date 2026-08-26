@@ -30,6 +30,7 @@ class SettingsScreenTest {
     private var nowPlayingToggles = 0
     private var homeAppsOpened = 0
     private var backs = 0
+    private var weatherOpened = 0
 
     private fun render(
         isDefaultLauncher: Boolean,
@@ -51,6 +52,7 @@ class SettingsScreenTest {
                     onToggleNowPlaying = { nowPlayingToggles++ },
                     onOpenBatterySaver = {},
                     onOpenAccessibility = {},
+                    onOpenWeather = { weatherOpened++ },
                     onBack = { backs++ },
                 )
             }

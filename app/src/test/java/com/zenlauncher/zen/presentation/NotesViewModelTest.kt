@@ -6,6 +6,8 @@ import com.zenlauncher.zen.domain.notes.LinkOrigin
 import com.zenlauncher.zen.domain.notes.LinkState
 import com.zenlauncher.zen.domain.notes.NoteIndexer
 import com.zenlauncher.zen.domain.notes.NoteLink
+import com.zenlauncher.zen.domain.notes.RecurringCluster
+import com.zenlauncher.zen.domain.notes.RecurringThemes
 import com.zenlauncher.zen.fakes.FakeNotesRepository
 import com.zenlauncher.zen.fakes.FakeZenClock
 import com.zenlauncher.zen.fakes.MainDispatcherRule
@@ -15,6 +17,7 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.TestScope
+import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -33,6 +36,7 @@ class NotesViewModelTest {
     private fun TestScope.viewModel(repository: FakeNotesRepository) = NotesViewModel(
         notes = repository,
         indexer = NoteIndexer(repository, LexicalEmbedder(), clock),
+        clock = clock,
         appScope = this,
     )
 
@@ -277,6 +281,117 @@ class NotesViewModelTest {
             repository.save(testNote("b", createdAt = 2_000L))
 
             assertEquals(listOf("b", "a"), awaitItem().notes.map { it.id })
+        }
+    }
+
+    /** Cinco es el minimo de [RecurringThemes.words]: menos que eso no cuenta como patron. */
+    private fun cincoNotasSobreElAburrimiento() = listOf(
+        testNote("a", body = "Hemos perdido el aburrimiento", createdAt = 1_000L),
+        testNote("b", body = "Ya nadie sabe aburrirse", createdAt = 2_000L),
+        testNote("c", body = "El aburrimiento es necesario", createdAt = 3_000L),
+        testNote("d", body = "Aburrirse tambien es productivo", createdAt = 4_000L),
+        testNote("e", body = "El aburrimiento no es el enemigo", createdAt = 5_000L),
+    )
+
+    @Test
+    fun `las raices recurrentes salen en patterns`() = runTest {
+        val repository = FakeNotesRepository(cincoNotasSobreElAburrimiento())
+        val model = viewModel(repository)
+
+        model.state.test {
+            var estado = awaitItem()
+            while (estado.loading || estado.patterns.isEmpty()) estado = awaitItem()
+
+            assertTrue(estado.patterns.any { it.stem == "aburr" && it.noteCount == 5 })
+        }
+    }
+
+    @Test
+    fun `buscando no aparecen los patrones`() = runTest {
+        val repository = FakeNotesRepository(cincoNotasSobreElAburrimiento())
+        val model = viewModel(repository)
+
+        model.state.test {
+            var estado = awaitItem()
+            while (estado.loading || estado.patterns.isEmpty()) estado = awaitItem()
+
+            model.onQueryChange("aburrimiento")
+
+            estado = awaitItem()
+            while (estado.query.isBlank()) estado = awaitItem()
+
+            assertEquals(emptyList<Any>(), estado.patterns)
+        }
+    }
+
+    @Test
+    fun `tres notas conectadas entre si proponen un proyecto`() = runTest {
+        val repository = FakeNotesRepository(
+            listOf(testNote("a", createdAt = 1_000L), testNote("b", createdAt = 2_000L), testNote("c", createdAt = 3_000L)),
+        )
+        repository.putLink(NoteLink("a", "b", 0.9f, LinkOrigin.MANUAL, LinkState.ACCEPTED, 1L))
+        repository.putLink(NoteLink("b", "c", 0.9f, LinkOrigin.MANUAL, LinkState.ACCEPTED, 2L))
+        val model = viewModel(repository)
+
+        model.state.test {
+            var estado = awaitItem()
+            while (estado.loading || estado.projectSuggestions.isEmpty()) estado = awaitItem()
+
+            assertEquals(setOf("a", "b", "c"), estado.projectSuggestions.single().noteIds)
+        }
+    }
+
+    @Test
+    fun `aceptar una sugerencia de proyecto agrupa las notas del cluster`() = runTest {
+        val repository = FakeNotesRepository(
+            listOf(testNote("a", createdAt = 1_000L), testNote("b", createdAt = 2_000L), testNote("c", createdAt = 3_000L)),
+        )
+        repository.putLink(NoteLink("a", "b", 0.9f, LinkOrigin.MANUAL, LinkState.ACCEPTED, 1L))
+        repository.putLink(NoteLink("b", "c", 0.9f, LinkOrigin.MANUAL, LinkState.ACCEPTED, 2L))
+        val model = viewModel(repository)
+
+        var cluster: RecurringCluster? = null
+        model.state.test {
+            var estado = awaitItem()
+            while (estado.loading || estado.projectSuggestions.isEmpty()) estado = awaitItem()
+            cluster = estado.projectSuggestions.single()
+        }
+
+        model.acceptClusterSuggestion(requireNotNull(cluster), "Un proyecto")
+        runCurrent()
+
+        model.state.test {
+            var estado = awaitItem()
+            while (estado.projectSuggestions.isNotEmpty()) estado = awaitItem()
+
+            val proyecto = repository.observeProjects().first().single()
+            assertEquals("Un proyecto", proyecto.title)
+            assertEquals(setOf("a", "b", "c"), repository.notesInProject(proyecto.id).map { it.id }.toSet())
+        }
+    }
+
+    @Test
+    fun `ignorar una sugerencia de proyecto la descarta solo en esta sesion`() = runTest {
+        val repository = FakeNotesRepository(
+            listOf(testNote("a", createdAt = 1_000L), testNote("b", createdAt = 2_000L), testNote("c", createdAt = 3_000L)),
+        )
+        repository.putLink(NoteLink("a", "b", 0.9f, LinkOrigin.MANUAL, LinkState.ACCEPTED, 1L))
+        repository.putLink(NoteLink("b", "c", 0.9f, LinkOrigin.MANUAL, LinkState.ACCEPTED, 2L))
+        val model = viewModel(repository)
+
+        model.state.test {
+            var estado = awaitItem()
+            while (estado.loading || estado.projectSuggestions.isEmpty()) estado = awaitItem()
+            val cluster = estado.projectSuggestions.single()
+
+            model.ignoreClusterSuggestion(cluster)
+
+            estado = awaitItem()
+            while (estado.projectSuggestions.isNotEmpty()) estado = awaitItem()
+
+            assertEquals(emptyList<Any>(), estado.projectSuggestions)
+            // No se persiste en ningun proyecto: sigue siendo un descarte de sesion.
+            assertTrue(repository.observeProjects().first().isEmpty())
         }
     }
 }

@@ -33,6 +33,17 @@ object ZenColors {
     val Tertiary = Color(0xFFA9A9AD)
     val Foreground = Color(0xFFEAEAE7)
 
+    /**
+     * El texto de un libro, y **solo** el texto de un libro.
+     *
+     * Mas apagado que [Foreground] a proposito. El resto de Zen son rotulos de dos
+     * palabras que se miran de reojo y quieren maximo contraste; aqui hay media hora
+     * seguida de prosa sobre negro puro, y en AMOLED un blanco de 12,6:1 sobre negro
+     * absoluto deslumbra y deja rastro al desplazar. Sigue muy por encima de AA (fijado
+     * en ZenColorsTest): apagado no es ilegible.
+     */
+    val Reading = Color(0xFFC9C9C4)
+
     /** Unico acento. Solo en indicadores de estado restringido. */
     val Accent = Color(0xFFB8894A)
 

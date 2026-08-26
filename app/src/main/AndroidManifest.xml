@@ -1,9 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
 
     <!--
-      Solo dos permisos, ambos ligados a la unica funcion que los necesita: avisar de
-      que la sesion ha terminado. Los dos degradan solos si no se conceden.
+      Cinco permisos, cada uno atado a la unica funcion que lo necesita, y los cinco
+      degradan solos si no se conceden.
     -->
 
     <!-- Aviso silencioso al terminar la sesion. Se pide en tiempo de ejecucion. -->
@@ -36,6 +37,44 @@
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
 
     <!--
+      Medir el uso del movil: tiempo por aplicacion, aperturas y desbloqueos.
+
+      NO se concede en la instalacion aunque este declarado: `PACKAGE_USAGE_STATS` es un
+      permiso de nivel `signature|appop`, y la concesion real la da el usuario a mano en
+      Ajustes de Android -> Acceso de uso. Declararlo aqui es lo unico que hace que Zen
+      aparezca en esa lista; de ahi el `tools:ignore`, que solo silencia el aviso de que
+      una aplicacion normal no puede otorgarselo (correcto: no se lo otorga).
+
+      Sin conceder, `queryEvents` devuelve una lista vacia y Zen lo distingue de "hoy no
+      has usado el movil": no hay pulso en la pantalla de inicio, no hay aviso de
+      distraccion y la pantalla de Uso dice que no hay medida en lugar de ensenar un
+      cero. Lo leido vive en memoria mientras el proceso existe, no se escribe en disco
+      y no sale del dispositivo.
+    -->
+    <uses-permission
+        android:name="android.permission.PACKAGE_USAGE_STATS"
+        tools:ignore="ProtectedPermissions" />
+
+    <!--
+      El tiempo, y NADA MAS. Es la unica funcion de Zen que sale a internet.
+
+      Se anadio tras comprobar en el dispositivo que no hay forma de leer el tiempo de la
+      aplicacion del telefono: su proveedor (`com.nothing.weather.share`) exige un permiso
+      de nivel `signature` que solo tienen las aplicaciones firmadas por Nothing, y esa
+      aplicacion no publica ningun aviso permanente del que sacarlo. Ver el README.
+
+      Lo que sale del telefono son DOS COORDENADAS recortadas a dos decimales —unos
+      300 m— y son las de la ciudad que el usuario escribio a mano: Zen sigue sin pedir
+      el permiso de ubicacion, y sin ciudad elegida no se abre ni una conexion. No hay
+      clave, no hay cuenta, no hay identificador: el servicio (Open-Meteo) no puede atar
+      dos consultas al mismo telefono mas alla de la direccion IP.
+
+      Degrada solo: sin red, con el servicio caido o si este permiso se revocara, la
+      franja de la pantalla de inicio se queda sin el glifo y todo lo demas sigue igual.
+    -->
+    <uses-permission android:name="android.permission.INTERNET" />
+
+    <!--
       Visibilidad de paquetes para un launcher: basta declarar el intent de actividades
       lanzables. NO se pide QUERY_ALL_PACKAGES, que seria desproporcionado.
     -->
@@ -50,6 +89,16 @@
         -->
         <intent>
             <action android:name="android.speech.RecognitionService" />
+        </intent>
+        <!--
+          Las demas pantallas de inicio, para NO contarlas como uso del movil. Zen no
+          implementa Recientes, asi que Android sigue usando el del launcher de fabrica y
+          su actividad se pone delante en cada gesto de recientes. Sin esto salian 66
+          "aperturas" diarias de com.nothing.launcher en el dispositivo de pruebas.
+        -->
+        <intent>
+            <action android:name="android.intent.action.MAIN" />
+            <category android:name="android.intent.category.HOME" />
         </intent>
     </queries>
 

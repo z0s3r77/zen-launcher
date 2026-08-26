@@ -25,6 +25,18 @@ object EssentialApps {
      */
     const val MAX_HOME_APPS = 8
 
+    /**
+     * Todos los paquetes que pueden ocupar un hueco esencial, esten instalados o no.
+     *
+     * No sirve para pintar nada: sirve para **descartar**. El detector de conductas lo
+     * usa como lista de exentos, porque una hora seguida de navegador GPS conduciendo o
+     * una llamada larga son tiempo de pantalla y no son una recaida. Es la misma idea
+     * que sostiene la reticula —"aplicaciones que no quitan tiempo"— leida al reves.
+     */
+    val candidatePackages: Set<String> by lazy {
+        slots.flatMapTo(mutableSetOf()) { it.candidates }
+    }
+
     /** Un papel de la pantalla de inicio y los paquetes que pueden cumplirlo, por orden. */
     data class Slot(val id: String, val candidates: List<String>)
 

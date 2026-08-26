@@ -1,11 +1,13 @@
 package com.zenlauncher.zen.ui
 
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertHasClickAction
 import androidx.compose.ui.test.assertHasNoClickAction
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performTouchInput
@@ -14,6 +16,11 @@ import androidx.compose.ui.test.swipeUp
 import androidx.compose.ui.test.performClick
 import com.zenlauncher.zen.domain.media.NowPlaying
 import com.zenlauncher.zen.domain.model.InstalledApp
+import com.zenlauncher.zen.domain.usage.AppUsage
+import com.zenlauncher.zen.domain.usage.UsageLevel
+import com.zenlauncher.zen.domain.usage.UsageReading
+import com.zenlauncher.zen.domain.weather.WeatherCondition
+import com.zenlauncher.zen.domain.weather.WeatherReading
 import com.zenlauncher.zen.presentation.home.HomeScreen
 import com.zenlauncher.zen.presentation.home.HomeUiState
 import com.zenlauncher.zen.presentation.home.menuLabelColor
@@ -40,9 +47,11 @@ class HomeScreenTest {
     private var drawerOpened = 0
     private var homeAppsOpened = 0
     private var notesOpened = 0
+    private var readingOpened = 0
     private var settingsOpened = 0
     private var sessionsStarted = 0
     private var breathsOpened = 0
+    private var newsOpened = 0
     private var restrictedOpened = 0
     private var statsOpened = 0
     private val launched = mutableListOf<InstalledApp>()
@@ -50,6 +59,8 @@ class HomeScreenTest {
     private val notificationsOpened = mutableListOf<String?>()
     private var exits = 0
     private var playerOpened = 0
+    private var usageOpened = 0
+    private var weatherOpened = 0
 
     private fun render(
         homeApps: List<InstalledApp>,
@@ -57,6 +68,8 @@ class HomeScreenTest {
         mediaPlaying: Boolean = false,
         nowPlaying: NowPlaying? = null,
         notificationCounts: Map<String, Int> = emptyMap(),
+        usageReading: UsageReading = calma(),
+        weather: WeatherReading? = null,
     ) {
         composeRule.setContent {
             ZenTheme {
@@ -71,14 +84,18 @@ class HomeScreenTest {
                         nowPlaying = nowPlaying,
                         notificationCounts = notificationCounts,
                     ),
+                    usageReading = usageReading,
                     onLaunchApp = { launched += it },
                     onOpenDrawer = { drawerOpened++ },
                     onOpenHomeApps = { homeAppsOpened++ },
                     onOpenNotes = { notesOpened++ },
+                    onOpenReading = { readingOpened++ },
                     onStartSession = { sessionsStarted++ },
                     onBreathe = { breathsOpened++ },
+                    onOpenNews = { newsOpened++ },
                     onOpenRestricted = { restrictedOpened++ },
                     onOpenStats = { statsOpened++ },
+                    onOpenUsage = { usageOpened++ },
                     onOpenSettings = { settingsOpened++ },
                     onOpenNotifications = { notificationsOpened += it },
                     onExitZen = { exits++ },
@@ -86,11 +103,22 @@ class HomeScreenTest {
                     onTogglePlayback = { mediaCommands += "playPause" },
                     onNextTrack = { mediaCommands += "next" },
                     onOpenPlayer = { playerOpened++ },
+                    onOpenWeather = { weatherOpened++ },
+                    weather = weather,
                     locale = Locale.forLanguageTag("es-ES"),
                 )
             }
         }
     }
+
+    /** Un dia tranquilo: el pulso de uso no se pinta. */
+    private fun calma() = UsageReading(
+        level = UsageLevel.CALMA,
+        screenMillis = 0L,
+        unlocks = 0,
+        topApp = null,
+        measured = true,
+    )
 
     /** Una pantalla llena: las ocho que caben, para medir el peor caso de alto. */
     private fun ochoApps() = listOf(
@@ -160,6 +188,51 @@ class HomeScreenTest {
     }
 
     @Test
+    fun `las noticias tienen boton propio, el tercero, y no estan en la reticula`() {
+        // Tercero y ultimo de la pila: los tres marcos ya miden mas de alto que el
+        // reloj que tienen al lado, asi que un cuarto se comeria el aire que la
+        // reticula reparte abajo. Va aqui y no en la reticula porque no lanza ninguna
+        // aplicacion, y no en el menu porque leer la portada es algo de cada dia.
+        render(homeApps = ochoApps())
+
+        composeRule.onNodeWithText("NOTICIAS")
+            .assertIsDisplayed()
+            .assertHasClickAction()
+            .performClick()
+
+        assertEquals(1, newsOpened)
+        // Y no dispara a sus vecinos: son tres botones pegados del mismo ancho.
+        assertEquals(0, breathsOpened)
+        assertEquals(0, sessionsStarted)
+    }
+
+    @Test
+    fun `el orden de los tres botones es ZEN, RESPIRA y NOTICIAS`() {
+        // Regresion: los tres comparten sitio y estilo, asi que el orden es lo unico
+        // que los distingue de un vistazo. Lo de arriba es lo que mas se usa.
+        render(homeApps = ochoApps())
+
+        val respira = composeRule.onNodeWithText("RESPIRA").getUnclippedBoundsInRoot()
+        val noticias = composeRule.onNodeWithText("NOTICIAS").getUnclippedBoundsInRoot()
+
+        assertTrue("RESPIRA debe quedar encima de NOTICIAS", respira.top < noticias.top)
+    }
+
+    /**
+     * La home no crece: con la pantalla llena —ocho aplicaciones, la reticula entera— la
+     * fila que abre el menu tiene que seguir a la vista. Es la unica salida de la
+     * pantalla de inicio, y un boton mas que la empujara fuera dejaria el menu, los
+     * ajustes y la salida de Zen inalcanzables.
+     */
+    @Test
+    fun `con el tercer boton la fila del menu sigue cabiendo`() {
+        render(homeApps = ochoApps())
+
+        composeRule.onNodeWithText("Menú").assertIsDisplayed()
+        composeRule.onNodeWithText("Todas las aplicaciones").assertIsDisplayed()
+    }
+
+    @Test
     fun `deslizar hacia arriba ya no abre nada`() {
         // Regresion: el gesto abria la lista completa desde cualquier punto de la
         // pantalla de inicio —tambien sobre la reticula y con el menu abierto—, asi que
@@ -223,7 +296,8 @@ class HomeScreenTest {
         // mismo que el sistema dibuja dos centimetros mas arriba.
         render(homeApps = emptyList())
 
-        composeRule.onNodeWithText("SIN SESIÓN").assertIsDisplayed()
+        // La franja sigue ahi; lo que lleva a la derecha es ahora la cara del dia.
+        composeRule.onNodeWithText(":)").assertIsDisplayed()
         composeRule.onNodeWithText("BAT 84%").assertDoesNotExist()
         composeRule.onNodeWithText("WIFI").assertDoesNotExist()
     }
@@ -284,7 +358,7 @@ class HomeScreenTest {
 
         // La fecha formateada depende de la zona horaria del entorno; se comprueba el
         // otro extremo de la franja, que es igual de suficiente: la cabecera sigue ahi.
-        composeRule.onNodeWithText("SIN SESIÓN").assertIsDisplayed()
+        composeRule.onNodeWithText(":)").assertIsDisplayed()
         composeRule.onNodeWithText("Registro").assertIsDisplayed()
 
         composeRule.onNodeWithText("ZEN").assertDoesNotExist()
@@ -592,5 +666,284 @@ class HomeScreenTest {
 
         composeRule.onNodeWithText("ESENCIALES").assertIsDisplayed()
         composeRule.onNodeWithText("¿QUÉ NECESITAS?").assertDoesNotExist()
+    }
+
+    /**
+     * El pulso de uso vive bajo la misma regla que el mando del reproductor: lo que no
+     * tiene nada detras no se pinta. Con el dia en calma la home queda exactamente como
+     * estaba, sin una cuarta fila permanente.
+     */
+    @Test
+    fun `con el dia en calma el pulso de uso no se pinta`() {
+        render(homeApps = ochoApps())
+
+        // La cara sí está, en la franja; lo que no está es la fila con las cifras.
+        composeRule.onNodeWithText(":)").assertIsDisplayed()
+        composeRule.onNodeWithText("USO ALTO").assertDoesNotExist()
+        composeRule.onNodeWithText("BIEN").assertDoesNotExist()
+    }
+
+    /**
+     * Regresión vista en el dispositivo: con dos horas de las que Instagram se llevaba
+     * el 77%, el escalón por tiempo decía NORMAL —así que no había pulso— pero la cara
+     * ya estaba triste, porque una aplicación acaparando es lo que mira `UsageMood` y el
+     * reloj no. Quedaba un `:(` en la franja sin una sola cifra que lo explicara, y al
+     * tocarlo se llegaba a una pantalla que ponía NORMAL. El resumen y el detalle tienen
+     * que decir lo mismo.
+     */
+    @Test
+    fun `si la cara esta triste, el pulso aparece a explicarlo`() {
+        render(
+            homeApps = ochoApps(),
+            usageReading = UsageReading(
+                level = UsageLevel.NORMAL,
+                screenMillis = 128 * 60_000L,
+                unlocks = 17,
+                topApp = AppUsage("com.instagram.android", 8, 98 * 60_000L),
+                measured = true,
+            ),
+        )
+
+        composeRule.onNodeWithText(":(").assertIsDisplayed()
+        composeRule.onNodeWithText("USO ALTO").assertIsDisplayed()
+        composeRule.onNodeWithText("2h 8m · 17").assertIsDisplayed()
+    }
+
+    @Test
+    fun `con uso alto el pulso aparece y lleva a la pantalla de uso`() {
+        render(
+            homeApps = ochoApps(),
+            usageReading = UsageReading(
+                level = UsageLevel.ALTA,
+                screenMillis = 200 * 60_000L,
+                unlocks = 70,
+                topApp = null,
+                measured = true,
+            ),
+        )
+
+        composeRule.onNodeWithText("USO ALTO").assertIsDisplayed()
+        // Las dos cifras que decidieron el escalon, no una barra de progreso.
+        composeRule.onNodeWithText("3h 20m · 70").assertIsDisplayed()
+
+        composeRule.onNodeWithText("USO ALTO").performClick()
+        assertEquals(1, usageOpened)
+    }
+
+    /**
+     * Regresion: sin acceso de uso concedido el hueco venia con ceros y el pulso lo leia
+     * como un dia ejemplar. No hay pulso sobre un dia que no se ha medido.
+     */
+    @Test
+    fun `sin medida no hay pulso`() {
+        render(
+            homeApps = ochoApps(),
+            usageReading = UsageReading(
+                level = UsageLevel.CALMA,
+                screenMillis = 0L,
+                unlocks = 0,
+                topApp = null,
+                measured = false,
+            ),
+        )
+
+        composeRule.onNodeWithText("CALMA").assertDoesNotExist()
+    }
+
+    @Test
+    fun `el uso del movil se abre desde el menu, no desde una fila fija`() {
+        render(homeApps = ochoApps())
+
+        composeRule.onNodeWithText("Uso del móvil").assertDoesNotExist()
+
+        composeRule.onNodeWithText("Menú").performClick()
+        composeRule.onNodeWithText("Uso del móvil").performClick()
+
+        assertEquals(1, usageOpened)
+    }
+
+    /**
+     * Notas vivia abajo, como una fila igual que "Menu", y por eso se leia como una
+     * opcion de administracion en lugar de como el sitio donde se escribe. Ahora es una
+     * celda mas de la reticula: con ocho aplicaciones le toca el numero 09.
+     */
+    @Test
+    fun `Notas es una celda mas de la reticula, con su numero`() {
+        render(homeApps = ochoApps())
+
+        composeRule.onNodeWithText("09").assertIsDisplayed()
+        composeRule.onNodeWithText("Notas").performClick()
+        assertEquals(1, notesOpened)
+    }
+
+    /**
+     * Y la home no crece por ello: con un numero impar de aplicaciones, Notas cae en el
+     * hueco que la ultima fila ya dejaba vacio y la reticula sigue midiendo lo mismo.
+     */
+    @Test
+    fun `con un numero impar de aplicaciones Notas ocupa el hueco que ya sobraba`() {
+        render(homeApps = ochoApps().dropLast(1))
+
+        composeRule.onNodeWithText("08").assertIsDisplayed()
+        composeRule.onNodeWithText("Notas").assertIsDisplayed()
+    }
+
+    /**
+     * Lectura entra al lado de Notas por la misma razon: es algo que se abre a diario y
+     * se usa como una aplicacion, no una opcion de administracion. Con ocho aplicaciones
+     * le toca el numero 10, justo detras de Notas.
+     */
+    @Test
+    fun `Lectura es la celda de al lado de Notas`() {
+        render(homeApps = ochoApps())
+
+        composeRule.onNodeWithText("10").assertIsDisplayed()
+        composeRule.onNodeWithText("Lectura").performClick()
+        assertEquals(1, readingOpened)
+    }
+
+    /**
+     * Y las dos son las **unicas** celdas que no son aplicaciones. Este test es el tope:
+     * si alguien anade una tercera, la reticula pasa de la ultima fila y empuja el reloj.
+     */
+    @Test
+    fun `solo hay dos celdas que no son aplicaciones`() {
+        render(homeApps = ochoApps())
+
+        // Ocho aplicaciones mas Notas (09) y Lectura (10): no puede existir una 11.
+        composeRule.onNodeWithText("11").assertDoesNotExist()
+    }
+
+    /** Y deja de estar abajo, junto a la fila que abre el menu. */
+    @Test
+    fun `Notas ya no es una fila al lado de Menu`() {
+        render(homeApps = ochoApps())
+
+        val notas = composeRule.onNodeWithText("Notas").getUnclippedBoundsInRoot()
+        val menu = composeRule.onNodeWithText("Menú").getUnclippedBoundsInRoot()
+        val reticula = composeRule.onNodeWithText("WhatsApp").getUnclippedBoundsInRoot()
+
+        assertTrue(
+            "Notas deberia estar en la reticula, no pegada al menu",
+            notas.top < menu.top && notas.top > reticula.top,
+        )
+    }
+
+    /**
+     * El slot derecho de la franja llevaba "SIN SESIÓN", que en la home es una
+     * constante: si hubiera sesión, la sesión sustituye a la pantalla entera. Ahora
+     * lleva el resumen del día, que sí puede decir cosas distintas.
+     */
+    @Test
+    fun `la franja lleva la cara del dia y ya no un rotulo constante`() {
+        render(homeApps = ochoApps())
+
+        composeRule.onNodeWithText(":)").assertIsDisplayed()
+        composeRule.onNodeWithText("SIN SESIÓN").assertDoesNotExist()
+    }
+
+    @Test
+    fun `la cara empeora cuando el dia se va de las manos`() {
+        render(
+            homeApps = ochoApps(),
+            usageReading = UsageReading(
+                level = UsageLevel.EXCESO,
+                screenMillis = 400 * 60_000L,
+                unlocks = 120,
+                topApp = null,
+                measured = true,
+            ),
+        )
+
+        composeRule.onNodeWithText(":O").assertIsDisplayed()
+    }
+
+    /**
+     * Sin acceso de uso la cara no opina: poner `:)` sin haber medido nada sería
+     * felicitar por un día que no ha ocurrido.
+     */
+    @Test
+    fun `sin medida la cara lo dice en lugar de sonreir`() {
+        render(
+            homeApps = ochoApps(),
+            usageReading = UsageReading(
+                level = UsageLevel.CALMA,
+                screenMillis = 0L,
+                unlocks = 0,
+                topApp = null,
+                measured = false,
+            ),
+        )
+
+        composeRule.onNodeWithText(":?").assertIsDisplayed()
+    }
+
+    /**
+     * `:)` es texto, pero no es texto que se pueda leer en voz alta: sin descripción, el
+     * único resumen del día que hay en la home no existiría para quien no ve la pantalla.
+     * Y una cara que enseña un problema tiene que llevar al detalle.
+     */
+    @Test
+    fun `la cara se lee en palabras y lleva al detalle`() {
+        render(homeApps = ochoApps())
+
+        composeRule.onNodeWithContentDescription("Uso de hoy: bien. Ver el detalle")
+            .performClick()
+
+        assertEquals(1, usageOpened)
+    }
+
+    /** El tiempo va al lado de la cara: el glifo del cielo y los grados. */
+    @Test
+    fun `el tiempo se ensena en la franja al lado de la cara`() {
+        render(
+            homeApps = ochoApps(),
+            weather = WeatherReading(18, WeatherCondition.DESPEJADO, observedAtMillis = 1_700_000_000_000),
+        )
+
+        composeRule.onNodeWithText("-O- 18°").assertIsDisplayed()
+        composeRule.onNodeWithText(":)").assertIsDisplayed()
+    }
+
+    /**
+     * Lo que no tiene nada detrás no se pinta: sin aplicación del tiempo publicando su
+     * aviso, la franja queda exactamente como estaba. Ningún hueco, ningún guion.
+     */
+    @Test
+    fun `sin dato del tiempo la franja no cambia`() {
+        render(homeApps = ochoApps(), weather = null)
+
+        // Ni los grados ni un hueco con un guion donde deberían estar.
+        composeRule.onAllNodesWithText("°", substring = true).assertCountEquals(0)
+        composeRule.onNodeWithText(":)").assertIsDisplayed()
+    }
+
+    /**
+     * `-O-` es texto, pero no es texto que se pueda leer en voz alta; misma razón que la
+     * cara. Y ninguna cifra sin salida: el toque lleva a la pantalla del tiempo, donde
+     * están la ciudad y la hora de la lectura.
+     */
+    @Test
+    fun `el tiempo se lee en palabras y lleva al detalle`() {
+        render(
+            homeApps = ochoApps(),
+            weather = WeatherReading(18, WeatherCondition.LLUVIA, observedAtMillis = 1_700_000_000_000),
+        )
+
+        composeRule.onNodeWithContentDescription("Tiempo: 18 grados, lluvia. Ver el detalle")
+            .performClick()
+
+        assertEquals(1, weatherOpened)
+    }
+
+    /** Sin cielo reconocido quedan los grados solos, que es la mitad que se mira. */
+    @Test
+    fun `sin cielo reconocido quedan los grados`() {
+        render(
+            homeApps = ochoApps(),
+            weather = WeatherReading(7, condition = null, observedAtMillis = 1_700_000_000_000),
+        )
+
+        composeRule.onNodeWithText("7°").assertIsDisplayed()
     }
 }

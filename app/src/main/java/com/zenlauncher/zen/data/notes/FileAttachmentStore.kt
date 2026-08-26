@@ -2,7 +2,7 @@ package com.zenlauncher.zen.data.notes
 
 import android.content.Context
 import android.graphics.Bitmap
-import android.graphics.BitmapFactory
+import android.graphics.ImageDecoder
 import android.net.Uri
 import com.zenlauncher.zen.core.ZenClock
 import com.zenlauncher.zen.domain.notes.AttachmentKind
@@ -69,22 +69,24 @@ class FileAttachmentStore(
      *
      * Una foto del Phone (2a) son 50 megapixeles: descomprimirla entera para guardarla
      * son cientos de megabytes de bitmap en memoria, dentro del proceso del **launcher**.
-     * `inSampleSize` la reduce mientras se lee, asi que el pico nunca llega a existir.
+     * `ImageDecoder` la reduce mientras decodifica, asi que el pico nunca llega a existir.
+     *
+     * No es `BitmapFactory.decodeStream`: probado en el dispositivo, el flujo que
+     * devuelve el selector de fotos del sistema (`content://media/picker/...`) se queda
+     * colgado para siempre dentro de `decodeStream` —sin excepcion, sin ANR porque
+     * corre en `Dispatchers.IO`, el hilo simplemente no vuelve nunca—, y "Añadir una
+     * imagen" no hacia nada. `ImageDecoder.createSource` lee ese mismo `Uri` sin pasar
+     * por un `InputStream` propio, y es la via que Android documenta para decodificar
+     * desde un `Uri` desde API 28.
      *
      * [MAX_EDGE] es de sobra para releer una nota en un movil, y evita que apuntar diez
      * ideas con foto se coma un giga de almacenamiento.
      */
     private fun decodeDownscaled(uri: Uri): Bitmap? {
-        val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
-        appContext.contentResolver.openInputStream(uri)?.use {
-            BitmapFactory.decodeStream(it, null, bounds)
-        } ?: return null
-
-        val options = BitmapFactory.Options().apply {
-            inSampleSize = sampleSize(bounds.outWidth, bounds.outHeight)
-        }
-        return appContext.contentResolver.openInputStream(uri)?.use {
-            BitmapFactory.decodeStream(it, null, options)
+        val source = ImageDecoder.createSource(appContext.contentResolver, uri)
+        return ImageDecoder.decodeBitmap(source) { decoder, info, _ ->
+            val sample = sampleSize(info.size.width, info.size.height)
+            if (sample > 1) decoder.setTargetSampleSize(sample)
         }
     }
 
@@ -93,7 +95,7 @@ class FileAttachmentStore(
         const val MAX_EDGE = 2048
         const val JPEG_QUALITY = 85
 
-        /** Potencia de dos, que es lo unico que `inSampleSize` respeta de verdad. */
+        /** Potencia de dos, que es lo unico que `setTargetSampleSize` respeta de verdad. */
         fun sampleSize(width: Int, height: Int): Int {
             var sample = 1
             var longest = maxOf(width, height)

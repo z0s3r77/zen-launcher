@@ -30,6 +30,22 @@ val ArchivoFamily = FontFamily(
     archivo(600),
 )
 
+/**
+ * La serif del sistema, para el texto de los libros.
+ *
+ * **Es la unica tipografia de Zen que no se empaqueta**, y es deliberado por dos
+ * razones. La primera, el peso: Archivo ya son 643 KB y una serif con sus versalitas y
+ * su cursiva costaria otro tanto dentro del APK del launcher. La segunda, que aqui la
+ * eleccion no es de marca sino de oficio —una serif con remates para media hora de
+ * prosa—, y la que trae Android (Noto Serif) hace ese trabajo perfectamente y ya esta
+ * cargada en memoria por el sistema.
+ *
+ * Ni Archivo ni DM Mono valen para esto: la primera es una grotesca de rotulo y la
+ * segunda es monoespaciada. Es el unico sitio de la aplicacion donde entra una tercera
+ * familia, y entra porque el trabajo es otro.
+ */
+val ReadingSerifFamily = FontFamily.Serif
+
 val DmMonoFamily = FontFamily(
     Font(R.font.dm_mono_light, FontWeight.Light),
     Font(R.font.dm_mono_regular, FontWeight.Normal),
@@ -102,12 +118,61 @@ object ZenTextStyles {
         letterSpacing = (-0.02).em,
     )
 
+    /**
+     * Titular de noticia en una lista.
+     *
+     * Mide lo mismo que [Tile] pero con mas interlineado, y por eso no lo reusa: una
+     * celda de la reticula es una palabra y un titular son tres lineas de texto. Con el
+     * interlineado apretado de la reticula, tres lineas seguidas se leen como un bloque.
+     */
+    val Headline = TextStyle(
+        fontFamily = ArchivoFamily,
+        fontWeight = FontWeight(500),
+        fontSize = 18.sp,
+        lineHeight = 24.sp,
+        letterSpacing = (-0.02).em,
+    )
+
     /** Texto corrido. */
     val Body = TextStyle(
         fontFamily = ArchivoFamily,
         fontWeight = FontWeight(400),
         fontSize = 14.sp,
         lineHeight = 21.sp,
+    )
+
+    /**
+     * Texto corrido de un libro. Es la **base**, no el estilo final.
+     *
+     * El cuerpo y el interlineado de verdad los pone el usuario con los controles del
+     * lector, asi que se derivan de aqui en `readingBodyStyle`: estos numeros son el
+     * escalon central de esa escala, no una medida fija. Ver
+     * [com.zenlauncher.zen.domain.reading.ReadingSettings].
+     *
+     * `letterSpacing` a cero, al contrario que el resto de la aplicacion: el espaciado
+     * negativo de los rotulos aprieta las palabras para que un nombre largo quepa en una
+     * celda, y en un parrafo de doce lineas eso mismo cansa la vista.
+     */
+    val Reading = TextStyle(
+        fontFamily = ReadingSerifFamily,
+        fontWeight = FontWeight.Normal,
+        fontSize = 18.sp,
+        lineHeight = 31.sp,
+    )
+
+    /**
+     * Titulo de capitulo dentro del lector.
+     *
+     * En la serif del texto y no en Archivo: un titulo en la tipografia del launcher
+     * dentro de una pagina de libro se lee como un rotulo de la aplicacion metido en
+     * medio, no como una parte del libro.
+     */
+    val ReadingHeading = TextStyle(
+        fontFamily = ReadingSerifFamily,
+        fontWeight = FontWeight.Medium,
+        fontSize = 21.sp,
+        lineHeight = 28.sp,
+        letterSpacing = (-0.01).em,
     )
 
     /** Etiqueta tecnica de franja: mayusculas, muy espaciada. */

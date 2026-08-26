@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.text.selection.LocalTextSelectionColors
 import androidx.compose.material3.Text
@@ -29,6 +30,14 @@ fun ZenSearchField(
     placeholder: String,
     modifier: Modifier = Modifier,
     keyboardOptions: KeyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+    /**
+     * Que hace la tecla de buscar del teclado.
+     *
+     * Por defecto nada, que es lo correcto donde el filtro corre segun se teclea (el
+     * buscador de Notas). Donde buscar cuesta una peticion a la red, la tecla tiene que
+     * hacer algo o el teclado ofrece un boton muerto.
+     */
+    keyboardActions: KeyboardActions = KeyboardActions.Default,
 ) {
     val selectionColors = TextSelectionColors(
         handleColor = ZenColors.Secondary,
@@ -47,6 +56,7 @@ fun ZenSearchField(
             cursorBrush = SolidColor(ZenColors.Secondary),
             singleLine = true,
             keyboardOptions = keyboardOptions,
+            keyboardActions = keyboardActions,
             decorationBox = { innerTextField ->
                 if (value.isEmpty()) {
                     Text(

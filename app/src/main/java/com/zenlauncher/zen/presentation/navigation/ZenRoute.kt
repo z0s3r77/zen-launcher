@@ -12,7 +12,25 @@ object ZenRoute {
     const val BREATHE = "breathe"
     const val RESTRICTED = "restricted"
     const val STATS = "stats"
+
+    /** Uso del movil de hoy. Se llega desde el menu y desde el pulso de la home. */
+    const val USAGE = "usage"
+
+    /** La semana: grafica, veredicto y patron. Se llega desde la pantalla de Uso. */
+    const val USAGE_WEEK = "usage_week"
     const val SETTINGS = "settings"
+
+    /**
+     * El tiempo: lo que hace y de que ciudad. Se llega desde el glifo de la franja de la
+     * pantalla de inicio y desde Ajustes.
+     */
+    const val WEATHER = "weather"
+
+    /**
+     * La portada de noticias del dia. Se llega desde el boton NOTICIAS de la home, que
+     * es la unica puerta: no hay titulares en ninguna otra pantalla.
+     */
+    const val NEWS = "news"
 
     /** Elegir las aplicaciones de la reticula. Se llega desde Ajustes y desde la home. */
     const val HOME_APPS = "home_apps"
@@ -32,6 +50,40 @@ object ZenRoute {
     const val NOTE_ROUTE = "$NOTE/{$NOTE_ID_ARG}"
 
     fun note(id: String): String = "$NOTE/$id"
+
+    /**
+     * "Desarrollar una idea". El argumento es opcional: desde Notas se entra con una
+     * idea en blanco, y desde una nota existente con su cuerpo precargado.
+     */
+    const val DEVELOP = "develop"
+    const val DEVELOP_NOTE_ARG = "nota"
+    const val DEVELOP_ROUTE = "$DEVELOP?$DEVELOP_NOTE_ARG={$DEVELOP_NOTE_ARG}"
+
+    fun develop(noteId: String? = null): String =
+        if (noteId == null) DEVELOP else "$DEVELOP?$DEVELOP_NOTE_ARG=$noteId"
+
+    /** Lista de proyectos. Se llega desde la fila de Notas, y solo si hay alguno. */
+    const val PROJECTS = "projects"
+
+    /** Un proyecto concreto. El id va como segmento porque sin el no hay pantalla. */
+    const val PROJECT = "project"
+    const val PROJECT_ID_ARG = "proyecto"
+    const val PROJECT_ROUTE = "$PROJECT/{$PROJECT_ID_ARG}"
+
+    fun project(id: String): String = "$PROJECT/$id"
+
+    /**
+     * Lectura: la biblioteca de libros importados. Se llega desde la celda de la
+     * reticula de la pantalla de inicio, que es la unica puerta, igual que Notas.
+     */
+    const val READING = "reading"
+
+    /** Un libro concreto. El id va como segmento porque sin el no hay pantalla. */
+    const val BOOK = "book"
+    const val BOOK_ID_ARG = "libro"
+    const val BOOK_ROUTE = "$BOOK/{$BOOK_ID_ARG}"
+
+    fun book(id: String): String = "$BOOK/$id"
 
     /**
      * Unica ruta con argumento opcional: el paquete cuya marca se toco, para abrir la lista ya

@@ -4,12 +4,15 @@ import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performTextInput
 import com.zenlauncher.zen.domain.notes.AttachmentKind
 import com.zenlauncher.zen.domain.notes.Note
 import com.zenlauncher.zen.domain.notes.NoteAttachment
 import com.zenlauncher.zen.domain.notes.NoteLink
 import com.zenlauncher.zen.domain.notes.LinkOrigin
 import com.zenlauncher.zen.domain.notes.LinkState
+import com.zenlauncher.zen.domain.notes.NoteStage
+import com.zenlauncher.zen.domain.notes.Project
 import com.zenlauncher.zen.presentation.notes.ConnectedNote
 import com.zenlauncher.zen.presentation.notes.NoteDetailScreen
 import com.zenlauncher.zen.presentation.notes.NoteDetailUiState
@@ -35,6 +38,9 @@ class NoteDetailScreenTest {
     private val accepted = mutableListOf<NoteLink>()
     private val ignored = mutableListOf<NoteLink>()
     private var deletes = 0
+    private var develops = 0
+    private val assigned = mutableListOf<String>()
+    private val created = mutableListOf<String>()
 
     private fun enlace(url: String) = NoteAttachment(
         id = url,
@@ -54,6 +60,9 @@ class NoteDetailScreenTest {
                     onOpenNote = { openedNotes += it },
                     onAccept = { accepted += it },
                     onIgnore = { ignored += it },
+                    onDevelop = { develops++ },
+                    onAssignProject = { assigned += it },
+                    onCreateProject = { created += it },
                     onDelete = { deletes++ },
                     onBack = {},
                     locale = Locale("es", "ES"),
@@ -129,6 +138,15 @@ class NoteDetailScreenTest {
 
         composeRule.onNodeWithText("ETIQUETAS").assertIsDisplayed()
         composeRule.onNodeWithText("ATENCION  ·  MOVILES").assertIsDisplayed()
+    }
+
+    @Test
+    fun `desarrollar esta idea esta a un toque y avisa`() {
+        render(NoteDetailUiState(note = nota(), loading = false))
+
+        composeRule.onNodeWithText("Desarrollar esta idea").performClick()
+
+        assertEquals(1, develops)
     }
 
     @Test
@@ -235,5 +253,77 @@ class NoteDetailScreenTest {
 
         composeRule.onNodeWithText("NOTA").assertIsDisplayed()
         composeRule.onNodeWithText("Borrar la nota").assertDoesNotExist()
+    }
+
+    @Test
+    fun `una nota recien capturada no ensena ninguna etapa`() {
+        // SEED es el estado por defecto: ensenarlo en todas seria ruido.
+        render(NoteDetailUiState(note = nota(), loading = false))
+
+        composeRule.onNodeWithText("DESARROLLADA").assertDoesNotExist()
+    }
+
+    @Test
+    fun `una idea desarrollada lo dice como texto`() {
+        render(
+            NoteDetailUiState(
+                note = nota().copy(stage = NoteStage.DEVELOPED),
+                loading = false,
+            ),
+        )
+
+        composeRule.onNodeWithText("DESARROLLADA").assertIsDisplayed()
+    }
+
+    @Test
+    fun `sin proyecto asignado la fila lo dice`() {
+        render(NoteDetailUiState(note = nota(), loading = false))
+
+        composeRule.onNodeWithText("Sin proyecto").assertIsDisplayed()
+    }
+
+    @Test
+    fun `con un proyecto asignado la fila ensena su titulo`() {
+        val proyecto = Project(
+            id = "p1",
+            title = "Un proyecto",
+            createdAtMillis = ahora,
+        )
+        render(
+            NoteDetailUiState(
+                note = nota().copy(projectId = "p1"),
+                projects = listOf(proyecto),
+                loading = false,
+            ),
+        )
+
+        composeRule.onNodeWithText("Un proyecto").assertIsDisplayed()
+    }
+
+    @Test
+    fun `tocar proyecto abre la lista y asignar a uno existente avisa`() {
+        val proyecto = Project(
+            id = "p1",
+            title = "Un proyecto",
+            createdAtMillis = ahora,
+        )
+        render(NoteDetailUiState(note = nota(), projects = listOf(proyecto), loading = false))
+
+        composeRule.onNodeWithText("Proyecto").performClick()
+        composeRule.onNodeWithText("Un proyecto").performClick()
+
+        assertEquals(listOf("p1"), assigned)
+    }
+
+    @Test
+    fun `crear un proyecto nuevo desde la nota avisa con el titulo`() {
+        render(NoteDetailUiState(note = nota(), loading = false))
+
+        composeRule.onNodeWithText("Proyecto").performClick()
+        composeRule.onNodeWithText("Nuevo proyecto").performClick()
+        composeRule.onNodeWithText("Título del proyecto").performTextInput("Idea grande")
+        composeRule.onNodeWithText("Crear proyecto").performClick()
+
+        assertEquals(listOf("Idea grande"), created)
     }
 }

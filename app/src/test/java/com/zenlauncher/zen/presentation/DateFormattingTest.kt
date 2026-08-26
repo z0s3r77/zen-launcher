@@ -58,4 +58,24 @@ class DateFormattingTest {
 
         assertEquals(false, resultado.contains("."))
     }
+
+    /**
+     * La portada de noticias trae **su propia** fecha en el texto del sitio, en ISO, en
+     * lugar de una marca de tiempo. Se escribe como el resto de fechas de la aplicacion.
+     */
+    @Test
+    fun `una fecha ISO se escribe como las demas fechas cortas`() {
+        assertEquals("14 MAR", ZenDateFormats.isoShortDate("2026-03-14", marzo2026, es))
+    }
+
+    /**
+     * El rotulo del sitio puede cambiar de forma. Devolver null deja que la pantalla se
+     * caiga a la hora de descarga, que siempre existe, en vez de ensenar un texto que
+     * no es una fecha en el sitio de una fecha.
+     */
+    @Test
+    fun `lo que no es una fecha no se escribe como si lo fuera`() {
+        assertEquals(null, ZenDateFormats.isoShortDate("Edición del martes", marzo2026, es))
+        assertEquals(null, ZenDateFormats.isoShortDate("", marzo2026, es))
+    }
 }

@@ -81,6 +81,9 @@ class FakeNotesRepository(
     override fun observePendingLinks(): Flow<List<NoteLink>> =
         links.map { all -> all.filter { it.state == LinkState.PENDING } }
 
+    override fun observeAcceptedLinks(): Flow<List<NoteLink>> =
+        links.map { all -> all.filter { it.state == LinkState.ACCEPTED } }
+
     override suspend fun ignoredPairs(): Set<String> =
         links.value.filter { it.state == LinkState.IGNORED }
             .map { it.pairKey }

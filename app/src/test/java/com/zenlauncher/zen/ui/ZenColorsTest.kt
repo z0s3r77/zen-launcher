@@ -35,6 +35,7 @@ class ZenColorsTest {
             ZenColors.Muted,
             ZenColors.Secondary,
             ZenColors.Tertiary,
+            ZenColors.Reading,
             ZenColors.Foreground,
             ZenColors.Danger,
         ).forEach { assertMinContrast(it, ZenColors.Background, minimum = 4.5) }
@@ -72,6 +73,7 @@ class ZenColorsTest {
             ZenColors.Muted,
             ZenColors.Secondary,
             ZenColors.Tertiary,
+            ZenColors.Reading,
             ZenColors.Foreground,
         )
         val background = relativeLuminance(ZenColors.Background)

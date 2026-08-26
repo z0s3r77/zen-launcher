@@ -239,6 +239,22 @@ class SqliteNotesRepositoryTest {
     }
 
     @Test
+    fun `editar un proyecto ya existente no suelta a sus notas`() = runTest {
+        // Regresion: guardar un proyecto usaba CONFLICT_REPLACE, un DELETE seguido de un
+        // INSERT. El DELETE intermedio disparaba el ON DELETE SET NULL en cascada de
+        // notes.project_id, asi que "marcar terminado" (que reescribe el proyecto con
+        // done = true) dejaba a sus notas sin proyecto antes de poder actualizarlas.
+        repository.saveProject(Project("p1", "Aprender Rust", 1_000L))
+        repository.save(note("a"))
+        repository.assignToProject("a", "p1")
+
+        repository.saveProject(Project("p1", "Aprender Rust", 1_000L, done = true))
+
+        assertEquals("p1", repository.note("a")?.projectId)
+        assertEquals(listOf("a"), repository.notesInProject("p1").map { it.id })
+    }
+
+    @Test
     fun `un vector vuelve identico del disco`() = runTest {
         // El orden de bytes se fija a mano (little-endian): con el de por defecto de
         // ByteBuffer, los mismos bytes se leerian como numeros distintos y las
@@ -312,6 +328,20 @@ class SqliteNotesRepositoryTest {
 
         assertEquals(1, pendientes.size)
         assertEquals(LinkState.PENDING, pendientes.first().state)
+    }
+
+    @Test
+    fun `las conexiones aceptadas se leen todas juntas, sin filtrar por nota`() = runTest {
+        repository.save(note("a"))
+        repository.save(note("b", createdAt = 2_000L))
+        repository.save(note("c", createdAt = 3_000L))
+        repository.putLink(NoteLink("a", "b", 0.9f, LinkOrigin.SUGGESTED, LinkState.PENDING, 1L))
+        repository.putLink(NoteLink("a", "c", 0.4f, LinkOrigin.SUGGESTED, LinkState.ACCEPTED, 2L))
+
+        val aceptadas = repository.observeAcceptedLinks().first()
+
+        assertEquals(1, aceptadas.size)
+        assertEquals(LinkState.ACCEPTED, aceptadas.first().state)
     }
 
     @Test

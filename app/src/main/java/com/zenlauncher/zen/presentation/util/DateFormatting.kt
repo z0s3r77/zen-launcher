@@ -40,6 +40,39 @@ object ZenDateFormats {
             .replace(".", "")
     }
 
+    /**
+     * Una fecha ISO ("2026-08-25") escrita como el resto de fechas cortas de la
+     * aplicacion, o null si no es una fecha.
+     *
+     * Existe para la portada de noticias, que trae **su propia** fecha en el texto del
+     * sitio en lugar de una marca de tiempo. Se escribe la que dice la portada y no la
+     * del reloj del telefono: si la de hoy no se pudo bajar, lo que se lee es de otro
+     * dia y el usuario tiene que verlo.
+     */
+    fun isoShortDate(iso: String, nowMillis: Long, locale: Locale): String? = try {
+        val date = java.time.LocalDate.parse(iso)
+        val millis = date.atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli()
+        shortDate(millis, nowMillis, locale)
+    } catch (error: java.time.format.DateTimeParseException) {
+        // El rotulo del sitio puede cambiar de forma. Se cae a la hora de descarga, que
+        // siempre existe, en lugar de ensenar una fecha inventada.
+        null
+    }
+
+    /**
+     * La inicial del dia de la semana, para el pie de la grafica: L M X J V S D.
+     *
+     * Se saca del idioma del dispositivo y no de una lista escrita a mano: en castellano
+     * hay dos dias que empiezan por M y dos por S, y la abreviatura correcta la sabe el
+     * sistema.
+     */
+    fun weekdayInitial(epochMillis: Long, locale: Locale): String =
+        Instant.ofEpochMilli(epochMillis)
+            .atZone(ZoneId.systemDefault())
+            .dayOfWeek
+            .getDisplayName(java.time.format.TextStyle.NARROW_STANDALONE, locale)
+            .uppercase(locale)
+
     private fun format(epochMillis: Long, formatter: DateTimeFormatter): String =
         Instant.ofEpochMilli(epochMillis)
             .atZone(ZoneId.systemDefault())

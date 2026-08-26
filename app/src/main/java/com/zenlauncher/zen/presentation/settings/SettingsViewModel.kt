@@ -18,6 +18,8 @@ data class SettingsUiState(
     val homeAppsCount: Int = 0,
     val preferredDuration: ZenDuration = ZenDuration.Default,
     val batterySaverEnabled: Boolean = false,
+    /** Ciudad del tiempo, o null si no hay ninguna elegida y por tanto no hay red. */
+    val weatherPlaceName: String? = null,
     val loading: Boolean = true,
 )
 
@@ -40,9 +42,11 @@ class SettingsViewModel(
         installedApps.observeInstalledApps(),
         preferences.favouritePackages,
         restrictions.restrictedPackages,
-        preferences.preferredDuration,
+        // Duracion y ciudad viajan juntas: el `combine` tipado admite cinco fuentes y
+        // aqui ya son seis.
+        combine(preferences.preferredDuration, preferences.weatherPlace, ::Pair),
         batterySaver.isEnabled,
-    ) { apps, favourites, restricted, duration, saverEnabled ->
+    ) { apps, favourites, restricted, (duration, weatherPlace), saverEnabled ->
         // Se cuentan solo las que de verdad saldrian: una favorita desinstalada o
         // restringida despues de elegirla sigue en la lista guardada, pero no ocupa
         // hueco en la reticula, y el contador tiene que decir lo que se ve.
@@ -51,6 +55,7 @@ class SettingsViewModel(
             homeAppsCount = favourites.count { pkg -> selectable.any { it.packageName == pkg } },
             preferredDuration = duration,
             batterySaverEnabled = saverEnabled,
+            weatherPlaceName = weatherPlace?.name,
             loading = false,
         )
     }.stateIn(

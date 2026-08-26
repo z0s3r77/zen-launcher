@@ -33,6 +33,37 @@ data class Note(
     val displayTitle: String
         get() = title?.takeIf { it.isNotBlank() } ?: firstLine(body)
 
+    /**
+     * Lo que se lee **debajo** del titulo en una tarjeta de la lista.
+     *
+     * Nunca repite lo que ya dice [displayTitle]: sin titulo generado, el titulo *es*
+     * la primera linea del cuerpo, asi que ensenar el cuerpo entero debajo pintaria esa
+     * linea dos veces y la tarjeta pareceria un fallo de la aplicacion. Se corta por
+     * donde acabo el titulo, no por la primera linea completa, porque un titulo largo
+     * se trunca: lo que sobro de esa linea es texto que el usuario escribio y tiene que
+     * seguir viendose.
+     *
+     * Se limita a [PREVIEW_MAX_CHARS] porque una tarjeta ensena seis lineas: mandar mil
+     * caracteres a un `Text` que va a descartar el 95% es trabajo de medida tirado en
+     * una lista que se desplaza.
+     */
+    val preview: String
+        get() {
+            val rest = if (title?.isNotBlank() == true) body else bodyAfterTitle()
+            // Los huecos entre parrafos no sobreviven al recorte a seis lineas: dejarlos
+            // gastaria en blanco las lineas que tenian que llevar texto.
+            return rest.trim()
+                .replace(BLANK_LINES, "\n")
+                .take(PREVIEW_MAX_CHARS)
+        }
+
+    private fun bodyAfterTitle(): String {
+        val title = displayTitle
+        if (title.isEmpty()) return ""
+        val start = body.indexOf(title)
+        return if (start < 0) body else body.substring(start + title.length)
+    }
+
     /** Una nota sin texto pero con una foto o un enlace sigue siendo una nota. */
     val isEmpty: Boolean get() = body.isBlank() && attachments.isEmpty()
 
@@ -44,6 +75,8 @@ data class Note(
 
     private companion object {
         const val TITLE_MAX_CHARS = 80
+        const val PREVIEW_MAX_CHARS = 220
+        val BLANK_LINES = Regex("\\n\\s*\\n+")
 
         fun firstLine(body: String): String {
             val line = body.lineSequence().firstOrNull { it.isNotBlank() }?.trim().orEmpty()

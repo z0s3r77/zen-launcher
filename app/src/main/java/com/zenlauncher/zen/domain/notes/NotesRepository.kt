@@ -67,6 +67,14 @@ interface NotesRepository {
      */
     fun observePendingLinks(): Flow<List<NoteLink>>
 
+    /**
+     * Todas las conexiones que el usuario ha aceptado, sin filtrar por nota.
+     *
+     * Es lo que usa [RecurringThemes.clusters] para construir el grafo: solo cuentan las
+     * que el usuario confirmo, no las sugerencias sin responder.
+     */
+    fun observeAcceptedLinks(): Flow<List<NoteLink>>
+
     /** Parejas que el usuario ya descarto, para no volver a proponerlas. */
     suspend fun ignoredPairs(): Set<String>
 

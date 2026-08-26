@@ -10,14 +10,21 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import com.zenlauncher.zen.R
+import com.zenlauncher.zen.domain.notes.NoteStage
+import com.zenlauncher.zen.domain.notes.Project
 import com.zenlauncher.zen.presentation.components.MonoLabel
 import com.zenlauncher.zen.presentation.components.ZenHairline
 import com.zenlauncher.zen.presentation.components.ZenHeaderStrip
 import com.zenlauncher.zen.presentation.components.ZenListRow
 import com.zenlauncher.zen.presentation.components.ZenScreen
+import com.zenlauncher.zen.presentation.components.ZenSearchField
 import com.zenlauncher.zen.presentation.components.ZenTagButton
 import com.zenlauncher.zen.presentation.theme.ZenColors
 import com.zenlauncher.zen.presentation.theme.ZenSpacing
@@ -40,6 +47,9 @@ fun NoteDetailScreen(
     onOpenNote: (String) -> Unit,
     onAccept: (NoteLink) -> Unit,
     onIgnore: (NoteLink) -> Unit,
+    onDevelop: () -> Unit,
+    onAssignProject: (String) -> Unit,
+    onCreateProject: (String) -> Unit,
     onDelete: () -> Unit,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
@@ -63,6 +73,13 @@ fun NoteDetailScreen(
 
         Column(modifier = Modifier.weight(1f).verticalScroll(rememberScrollState())) {
             Spacer(Modifier.height(ZenSpacing.Large))
+
+            // Recien capturada (SEED) es el estado por defecto de cualquier nota:
+            // ensenarlo en todas seria ruido. Solo se dice cuando hay algo que contar.
+            if (note.stage != NoteStage.SEED) {
+                MonoLabel(text = stageLabel(note.stage))
+                Spacer(Modifier.height(ZenSpacing.Small))
+            }
 
             // El titulo generado solo se pinta si existe. Sin el, el cuerpo empieza
             // arriba del todo en lugar de dejar un hueco esperando a que la IA llegue.
@@ -183,6 +200,18 @@ fun NoteDetailScreen(
 
         ZenHairline()
         ZenListRow(
+            label = stringResource(R.string.note_develop),
+            onClick = onDevelop,
+        )
+        ZenHairline()
+        ProjectRow(
+            currentProject = state.currentProject,
+            projects = state.projects,
+            onAssign = onAssignProject,
+            onCreate = onCreateProject,
+        )
+        ZenHairline()
+        ZenListRow(
             label = stringResource(R.string.note_delete),
             // El mismo rojo que "Salir de Zen", y por el mismo motivo: en una lista
             // monocroma es lo unico que evita pulsarla por inercia. Ver [ZenColors.Danger].
@@ -191,4 +220,81 @@ fun NoteDetailScreen(
         )
         ZenHairline()
     }
+}
+
+/** Nunca se llama con [NoteStage.SEED]: es el estado por defecto y no se pinta. */
+@Composable
+private fun stageLabel(stage: NoteStage): String {
+    val resId = when (stage) {
+        NoteStage.DEVELOPED -> R.string.note_stage_developed
+        NoteStage.PROJECT -> R.string.note_stage_project
+        NoteStage.DONE -> R.string.note_stage_done
+        NoteStage.SEED -> return ""
+    }
+    return stringResource(resId)
+}
+
+/**
+ * Fila "Proyecto": muestra el actual o "Sin proyecto", y al tocarla abre un selector
+ * simple —lista de proyectos existentes mas "Nuevo proyecto"— sin salir de la pantalla.
+ */
+@Composable
+private fun ProjectRow(
+    currentProject: Project?,
+    projects: List<Project>,
+    onAssign: (String) -> Unit,
+    onCreate: (String) -> Unit,
+) {
+    var open by remember { mutableStateOf(false) }
+    var creatingNew by remember { mutableStateOf(false) }
+    var newTitle by remember { mutableStateOf("") }
+
+    ZenListRow(
+        label = stringResource(R.string.note_project_row),
+        onClick = { open = !open },
+        trailing = {
+            MonoLabel(text = currentProject?.title ?: stringResource(R.string.note_project_none))
+        },
+    )
+
+    if (!open) return
+
+    if (creatingNew) {
+        ZenHairline()
+        ZenSearchField(
+            value = newTitle,
+            onValueChange = { newTitle = it },
+            placeholder = stringResource(R.string.develop_project_placeholder),
+        )
+        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+            ZenTagButton(
+                text = stringResource(R.string.develop_project_create),
+                onClick = {
+                    onCreate(newTitle)
+                    open = false
+                    creatingNew = false
+                    newTitle = ""
+                },
+            )
+        }
+        return
+    }
+
+    projects.forEach { project ->
+        ZenHairline()
+        ZenListRow(
+            label = project.title,
+            labelColor = ZenColors.Secondary,
+            onClick = {
+                onAssign(project.id)
+                open = false
+            },
+        )
+    }
+    ZenHairline()
+    ZenListRow(
+        label = stringResource(R.string.note_project_new),
+        labelColor = ZenColors.Secondary,
+        onClick = { creatingNew = true },
+    )
 }

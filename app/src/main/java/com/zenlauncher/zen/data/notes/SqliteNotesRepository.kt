@@ -207,6 +207,23 @@ class SqliteNotesRepository(
             }
         }
 
+    override fun observeAcceptedLinks(): Flow<List<NoteLink>> = reemitting { acceptedLinks() }
+
+    private fun acceptedLinks(): List<NoteLink> =
+        helper.readableDatabase.query(
+            TABLE_LINKS,
+            null,
+            "$COLUMN_STATE = ?",
+            arrayOf(LinkState.ACCEPTED.name),
+            null,
+            null,
+            null,
+        ).use { cursor ->
+            buildList(cursor.count) {
+                while (cursor.moveToNext()) add(cursor.toLink())
+            }
+        }
+
     override suspend fun ignoredPairs(): Set<String> = withContext(io) {
         helper.readableDatabase.query(
             TABLE_LINKS,
@@ -300,12 +317,19 @@ class SqliteNotesRepository(
 
     override suspend fun saveProject(project: Project) {
         withContext(io) {
-            helper.writableDatabase.insertWithOnConflict(
-                TABLE_PROJECTS,
-                null,
-                project.toContentValues(),
-                SQLiteDatabase.CONFLICT_REPLACE,
-            )
+            // Mismo motivo que `upsertNote`: `CONFLICT_REPLACE` es un DELETE seguido de
+            // un INSERT, y `notes.project_id` tiene `ON DELETE SET NULL` en cascada. Al
+            // editar un proyecto ya existente (por ejemplo, marcarlo terminado) ese
+            // DELETE intermedio soltaba todas sus notas antes de que el INSERT llegara a
+            // devolverles el id: la nota se quedaba sin proyecto y la cola de "marcar
+            // terminado" no encontraba nada que actualizar. Un UPDATE deja intacta la
+            // referencia.
+            val db = helper.writableDatabase
+            val values = project.toContentValues()
+            val updated = db.update(TABLE_PROJECTS, values, "$COLUMN_ID = ?", arrayOf(project.id))
+            if (updated == 0) {
+                db.insertWithOnConflict(TABLE_PROJECTS, null, values, SQLiteDatabase.CONFLICT_ABORT)
+            }
         }
         invalidations.tryEmit(Unit)
     }

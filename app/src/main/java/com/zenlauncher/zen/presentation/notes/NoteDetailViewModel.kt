@@ -8,6 +8,7 @@ import com.zenlauncher.zen.domain.notes.LinkState
 import com.zenlauncher.zen.domain.notes.Note
 import com.zenlauncher.zen.domain.notes.NoteLink
 import com.zenlauncher.zen.domain.notes.NotesRepository
+import com.zenlauncher.zen.domain.notes.Project
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -19,6 +20,7 @@ import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import java.util.UUID
 
 data class NoteDetailUiState(
     val note: Note? = null,
@@ -33,8 +35,13 @@ data class NoteDetailUiState(
     val connections: List<ConnectedNote> = emptyList(),
     /** Propuestas del indice, esperando respuesta. */
     val suggestions: List<ConnectedNote> = emptyList(),
+    /** Todos los proyectos, para el selector: "asignar a" o "nuevo proyecto". */
+    val projects: List<Project> = emptyList(),
     val loading: Boolean = true,
-)
+) {
+    /** El proyecto de esta nota, ya resuelto. Null si no tiene o si no se ha cargado. */
+    val currentProject: Project? get() = projects.firstOrNull { it.id == note?.projectId }
+}
 
 /** La otra nota de una conexion, ya resuelta, con el enlace que las une. */
 data class ConnectedNote(
@@ -69,7 +76,8 @@ class NoteDetailViewModel(
                     notes.observeNote(id),
                     notes.observeLinks(id),
                     notes.observeNotes(),
-                ) { note, links, all ->
+                    notes.observeProjects(),
+                ) { note, links, all, projects ->
                     val byId = all.associateBy { it.id }
                     // El enlace no tiene direccion: la "otra" nota es la que no es esta.
                     // Sin resolverlo asi, la mitad de las conexiones se ensenarian a si
@@ -84,6 +92,7 @@ class NoteDetailViewModel(
                             .map { attachments.absolutePath(it.value) },
                         connections = resolved.filter { it.link.state == LinkState.ACCEPTED },
                         suggestions = resolved.filter { it.link.state == LinkState.PENDING },
+                        projects = projects,
                         loading = false,
                     )
                 }
@@ -118,6 +127,23 @@ class NoteDetailViewModel(
     fun ignore(link: NoteLink) {
         appScope.launch {
             notes.putLink(link.copy(state = LinkState.IGNORED, createdAtMillis = clock.wallTimeMillis()))
+        }
+    }
+
+    /** Mete la nota en un proyecto ya existente. Reusa lo que ya hay en el repositorio. */
+    fun assignToProject(projectId: String) {
+        val id = noteId.value ?: return
+        appScope.launch { notes.assignToProject(id, projectId) }
+    }
+
+    /** Crea un proyecto nuevo con solo esta nota y la asigna. */
+    fun createProjectAndAssign(title: String) {
+        val id = noteId.value ?: return
+        if (title.isBlank()) return
+        appScope.launch {
+            val projectId = UUID.randomUUID().toString()
+            notes.saveProject(Project(id = projectId, title = title, createdAtMillis = clock.wallTimeMillis()))
+            notes.assignToProject(id, projectId)
         }
     }
 

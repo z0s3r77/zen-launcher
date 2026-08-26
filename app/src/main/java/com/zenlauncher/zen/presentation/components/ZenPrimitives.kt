@@ -69,9 +69,13 @@ fun MonoData(
 /**
  * Boton compacto de rotulo tecnico dentro de un marco de 1px.
  *
- * Es el unico boton "de aparato" de Zen y esta reservado a las dos acciones propias de
- * la pantalla de inicio: empezar una sesion y respirar. Marco y no relleno, para que no
- * compita con la hora, que sigue siendo lo mas visible.
+ * Es el unico boton "de aparato" de Zen: ZEN y RESPIRA en la pantalla de inicio,
+ * capturar y desarrollar en Notas, y las respuestas a una propuesta. Marco y no relleno,
+ * para que no compita con lo que se lee —la hora, las notas—, que es lo mas visible.
+ *
+ * Marca el limite entre lo que se hace y lo que se lee: si algo lleva este marco, es un
+ * control; si es una fila o un recuadro, es contenido. Por eso el rotulo va en
+ * mayusculas y en la tipografia tecnica, nunca redactado como una frase.
  *
  * @param stretch marco al ancho disponible en lugar de al del rotulo. Sirve para
  *   apilar dos botones —ZEN y RESPIRA— y que los dos marcos midan lo mismo: con anchos
@@ -131,6 +135,25 @@ fun ZenHeaderStrip(
     modifier: Modifier = Modifier,
     leftAccent: Boolean = false,
     onBack: (() -> Unit)? = null,
+    /**
+     * Que dice el dato de la derecha, en palabras.
+     *
+     * Existe para la cara de la pantalla de inicio: `:)` es texto, pero no es texto que
+     * se pueda leer en voz alta. Sin esto, el unico resumen del dia que hay en la home
+     * no existiria para quien no ve la pantalla.
+     */
+    rightDescription: String? = null,
+    onRightClick: (() -> Unit)? = null,
+    /**
+     * Dato secundario, a la izquierda del principal y en la misma franja.
+     *
+     * Existe para el tiempo de la pantalla de inicio, al lado de la cara del dia. Es el
+     * unico sitio donde cabia: la home no crece, y una fila permanente mas para tres
+     * caracteres y dos cifras habria empujado una aplicacion fuera de la pantalla.
+     */
+    secondary: String? = null,
+    secondaryDescription: String? = null,
+    onSecondaryClick: (() -> Unit)? = null,
 ) {
     Box(modifier = modifier.fillMaxWidth()) {
         Row(
@@ -159,7 +182,23 @@ fun ZenHeaderStrip(
                     color = if (leftAccent) ZenColors.Foreground else ZenColors.Dim,
                 )
             }
-            MonoLabel(text = right)
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(ZenSpacing.Medium),
+            ) {
+                if (secondary != null) {
+                    RightSlot(
+                        text = secondary,
+                        description = secondaryDescription,
+                        onClick = onSecondaryClick,
+                    )
+                }
+                RightSlot(
+                    text = right,
+                    description = rightDescription,
+                    onClick = onRightClick,
+                )
+            }
         }
         Box(
             modifier = Modifier
@@ -168,6 +207,46 @@ fun ZenHeaderStrip(
                 .height(ZenSpacing.Hairline)
                 .background(ZenColors.Border),
         )
+    }
+}
+
+/**
+ * Un dato del lado derecho de la franja.
+ *
+ * Se toca solo si hay a donde ir. Un resumen que ensena un problema y no lleva al
+ * detalle obliga a buscarlo, y en la pantalla de inicio eso son tres toques a ciegas.
+ */
+@Composable
+private fun RightSlot(
+    text: String,
+    description: String?,
+    onClick: (() -> Unit)?,
+) {
+    val label = @Composable { modifier: Modifier ->
+        MonoLabel(
+            text = text,
+            modifier = if (description != null) {
+                modifier.semantics { contentDescription = description }
+            } else {
+                modifier
+            },
+        )
+    }
+
+    if (onClick == null) {
+        label(Modifier)
+        return
+    }
+
+    Box(
+        modifier = Modifier
+            // El glifo mide dos caracteres; el area tactil no puede bajar del minimo.
+            .heightIn(min = 48.dp)
+            .widthIn(min = 48.dp)
+            .clickable(role = Role.Button, onClickLabel = description, onClick = onClick),
+        contentAlignment = Alignment.CenterEnd,
+    ) {
+        label(Modifier)
     }
 }
 
@@ -231,6 +310,16 @@ fun ZenListRow(
     labelColor: Color = ZenColors.Foreground,
     onClick: (() -> Unit)? = null,
     onClickLabel: String? = null,
+    /**
+     * Cuantas lineas puede ocupar el rotulo.
+     *
+     * Una por defecto: en una lista de acciones, un rotulo que se parte en dos rompe el
+     * ritmo de la retícula. Dos en las listas cuyo elemento es un **nombre largo que hay
+     * que distinguir de otro** —las ciudades del buscador del tiempo—, donde lo que se
+     * corta es justo la parte que diferencia "Oviedo, Asturias, España" de "Oviedo,
+     * Florida, Estados Unidos" y elegir se vuelve una lotería.
+     */
+    labelMaxLines: Int = 1,
     trailing: @Composable (() -> Unit)? = null,
 ) {
     val clickable = if (onClick != null) {
@@ -261,7 +350,7 @@ fun ZenListRow(
             style = ZenTextStyles.ListItem,
             color = labelColor,
             modifier = Modifier.weight(1f),
-            maxLines = 1,
+            maxLines = labelMaxLines,
             overflow = TextOverflow.Ellipsis,
         )
         trailing?.invoke()

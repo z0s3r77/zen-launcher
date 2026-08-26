@@ -20,18 +20,45 @@ internal class ZenDatabaseHelper(
     override fun onCreate(db: SQLiteDatabase) {
         createSessionsSchema(db)
         createNotesSchema(db)
+        createReadingSchema(db)
     }
 
     /**
      * Migrar, nunca borrar: al otro lado de esta funcion hay sesiones que el usuario ya
-     * ha hecho y notas que ya ha escrito. Cada version se aplica en su propio bloque y
-     * sin `else`, para que un salto de v1 a v3 pase por las dos.
+     * ha hecho, notas que ya ha escrito y libros a medio leer. Cada version se aplica en
+     * su propio bloque y sin `else`, para que un salto de v1 a v4 pase por todas.
+     *
+     * **Las funciones `create...Schema` crean siempre la forma ACTUAL de sus tablas**, no
+     * la que tenian en la version que las estreno. Eso significa que quien llega desde
+     * antes de la 3 recibe las tablas de Lectura ya completas, y los pasos posteriores
+     * que solo **retocan** esas mismas tablas no pueden volver a aplicarse encima: el
+     * `ALTER` de v4 fallaba con "duplicate column name" en cualquier telefono que
+     * actualizara desde v1 o v2, y un fallo aqui deja el telefono sin pantalla de inicio.
+     * De ahi [readingJustCreated]. Cualquier paso futuro que retoque tablas ya existentes
+     * necesita la misma guarda.
      */
     override fun onUpgrade(db: SQLiteDatabase, oldVersion: Int, newVersion: Int) {
         if (oldVersion < 2) {
             // v2 solo anade tablas nuevas: las sesiones de v1 se quedan intactas, y por
             // eso aqui no hay ni un ALTER ni un DROP sobre `sessions`.
             createNotesSchema(db)
+        }
+        // v3 tambien anade solo tablas: los libros son una funcion nueva y no tocan ni
+        // una fila de lo que ya habia. Se crean con la forma actual, que ya incluye todo
+        // lo que anadio v4.
+        val readingJustCreated = oldVersion < 3
+        if (readingJustCreated) {
+            createReadingSchema(db)
+        }
+        if (oldVersion < 4 && !readingJustCreated) {
+            // v4 es la unica migracion que **toca una tabla existente**, y por eso es un
+            // ALTER con valor por defecto y no un DROP: al otro lado hay libros a medio
+            // leer. Un libro de v3 se queda con desplazamiento 0, que es el principio del
+            // parrafo por el que iba: se pierde media pagina de lectura, no el libro.
+            db.execSQL(
+                "ALTER TABLE $TABLE_BOOKS ADD COLUMN $COLUMN_LAST_OFFSET INTEGER NOT NULL DEFAULT 0",
+            )
+            createMarksSchema(db)
         }
     }
 
@@ -174,11 +201,137 @@ internal class ZenDatabaseHelper(
         )
     }
 
+    /**
+     * Las tablas de Lectura.
+     *
+     * Un libro se guarda **como texto ya entendido**, no como PDF: la ficha, sus bloques
+     * en orden y su indice. El PDF original no se copia (ver `Book.sourceUri`), asi que
+     * lo que ocupa un libro aqui es el texto que tiene, un par de megabytes para uno de
+     * 350 paginas.
+     */
+    private fun createReadingSchema(db: SQLiteDatabase) {
+        db.execSQL(
+            """
+            CREATE TABLE $TABLE_BOOKS (
+                $COLUMN_ID TEXT NOT NULL PRIMARY KEY,
+                $COLUMN_TITLE TEXT NOT NULL,
+                $COLUMN_AUTHOR TEXT,
+                $COLUMN_SOURCE_URI TEXT NOT NULL,
+                $COLUMN_COVER_PATH TEXT,
+                $COLUMN_PAGE_COUNT INTEGER NOT NULL,
+                $COLUMN_BLOCK_COUNT INTEGER NOT NULL,
+                $COLUMN_IMPORTED_AT INTEGER NOT NULL,
+                $COLUMN_LAST_READ_AT INTEGER,
+                $COLUMN_LAST_BLOCK INTEGER NOT NULL DEFAULT 0,
+                -- Dentro de que parrafo. Pasando pagina, un parrafo largo se parte por
+                -- la mitad y "por donde ibas" es un punto dentro del bloque.
+                $COLUMN_LAST_OFFSET INTEGER NOT NULL DEFAULT 0
+            )
+            """.trimIndent(),
+        )
+        // La biblioteca se ordena siempre igual: lo ultimo que se estuvo leyendo arriba.
+        db.execSQL(
+            "CREATE INDEX idx_books_last_read ON $TABLE_BOOKS ($COLUMN_LAST_READ_AT DESC)",
+        )
+
+        db.execSQL(
+            """
+            CREATE TABLE $TABLE_BOOK_BLOCKS (
+                $COLUMN_BOOK_ID TEXT NOT NULL,
+                $COLUMN_BLOCK_INDEX INTEGER NOT NULL,
+                $COLUMN_KIND TEXT NOT NULL,
+                $COLUMN_LEVEL INTEGER NOT NULL DEFAULT 0,
+                $COLUMN_PAGE INTEGER NOT NULL,
+                $COLUMN_VALUE TEXT NOT NULL,
+                -- La pareja libro-posicion es la identidad de un bloque: no hace falta
+                -- un id propio, y asi el indice que se necesita para leerlo en orden es
+                -- la propia clave primaria.
+                PRIMARY KEY ($COLUMN_BOOK_ID, $COLUMN_BLOCK_INDEX),
+                FOREIGN KEY ($COLUMN_BOOK_ID) REFERENCES $TABLE_BOOKS ($COLUMN_ID)
+                    ON DELETE CASCADE
+            )
+            """.trimIndent(),
+        )
+
+        createMarksSchema(db)
+
+        db.execSQL(
+            """
+            CREATE TABLE $TABLE_BOOK_CHAPTERS (
+                $COLUMN_BOOK_ID TEXT NOT NULL,
+                $COLUMN_BLOCK_INDEX INTEGER NOT NULL,
+                $COLUMN_TITLE TEXT NOT NULL,
+                $COLUMN_LEVEL INTEGER NOT NULL,
+                $COLUMN_PAGE INTEGER NOT NULL,
+                PRIMARY KEY ($COLUMN_BOOK_ID, $COLUMN_BLOCK_INDEX),
+                FOREIGN KEY ($COLUMN_BOOK_ID) REFERENCES $TABLE_BOOKS ($COLUMN_ID)
+                    ON DELETE CASCADE
+            )
+            """.trimIndent(),
+        )
+    }
+
+    /**
+     * Lo que el usuario deja escrito **encima** del libro: marcas y subrayados.
+     *
+     * Va en su propia funcion y no dentro de [createReadingSchema] porque son dos
+     * versiones distintas del esquema: quien instalo la version anterior ya tiene las
+     * tablas de libros y solo necesita estas.
+     *
+     * Un subrayado guarda **su texto copiado**, no solo las posiciones. Es la unica
+     * duplicacion de datos que hay aqui y esta puesta a proposito: la lista de subrayados
+     * es donde se repasa, y sin el texto habria que cargar el libro entero —miles de
+     * bloques— para poder pintar una lista de diez lineas.
+     */
+    private fun createMarksSchema(db: SQLiteDatabase) {
+        db.execSQL(
+            """
+            CREATE TABLE $TABLE_BOOKMARKS (
+                $COLUMN_ID TEXT NOT NULL PRIMARY KEY,
+                $COLUMN_BOOK_ID TEXT NOT NULL,
+                $COLUMN_BLOCK_INDEX INTEGER NOT NULL,
+                $COLUMN_CHAR_OFFSET INTEGER NOT NULL DEFAULT 0,
+                $COLUMN_VALUE TEXT NOT NULL,
+                $COLUMN_PAGE INTEGER NOT NULL,
+                $COLUMN_CREATED_AT INTEGER NOT NULL,
+                FOREIGN KEY ($COLUMN_BOOK_ID) REFERENCES $TABLE_BOOKS ($COLUMN_ID)
+                    ON DELETE CASCADE
+            )
+            """.trimIndent(),
+        )
+        db.execSQL(
+            "CREATE INDEX idx_bookmarks_book ON $TABLE_BOOKMARKS ($COLUMN_BOOK_ID, $COLUMN_BLOCK_INDEX)",
+        )
+
+        db.execSQL(
+            """
+            CREATE TABLE $TABLE_HIGHLIGHTS (
+                $COLUMN_ID TEXT NOT NULL PRIMARY KEY,
+                $COLUMN_BOOK_ID TEXT NOT NULL,
+                $COLUMN_BLOCK_INDEX INTEGER NOT NULL,
+                $COLUMN_START INTEGER NOT NULL,
+                $COLUMN_END INTEGER NOT NULL,
+                $COLUMN_VALUE TEXT NOT NULL,
+                -- null es "solo subrayado". Subrayar y anotar son la misma cosa con y
+                -- sin texto detras, no dos funciones: ver `Highlight`.
+                $COLUMN_NOTE TEXT,
+                $COLUMN_PAGE INTEGER NOT NULL,
+                $COLUMN_CREATED_AT INTEGER NOT NULL,
+                FOREIGN KEY ($COLUMN_BOOK_ID) REFERENCES $TABLE_BOOKS ($COLUMN_ID)
+                    ON DELETE CASCADE
+            )
+            """.trimIndent(),
+        )
+        db.execSQL(
+            "CREATE INDEX idx_highlights_book ON $TABLE_HIGHLIGHTS ($COLUMN_BOOK_ID, $COLUMN_BLOCK_INDEX)",
+        )
+    }
+
     companion object {
         const val DATABASE_NAME = "zen.db"
 
-        /** v2: tablas de notas, adjuntos, conexiones, proyectos e indice semantico. */
-        const val DATABASE_VERSION = 2
+        /** v4: paginacion (posicion con desplazamiento), marcas de pagina y subrayados. */
+        const val DATABASE_VERSION = 4
 
         const val TABLE_SESSIONS = "sessions"
         const val COLUMN_ID = "id"
@@ -230,5 +383,36 @@ internal class ZenDatabaseHelper(
         const val COLUMN_VECTOR = "vector"
 
         const val COLUMN_DONE = "done"
+
+        const val TABLE_BOOKS = "books"
+        const val TABLE_BOOK_BLOCKS = "book_blocks"
+        const val TABLE_BOOK_CHAPTERS = "book_chapters"
+
+        const val COLUMN_AUTHOR = "author"
+        const val COLUMN_SOURCE_URI = "source_uri"
+        const val COLUMN_COVER_PATH = "cover_path"
+        const val COLUMN_PAGE_COUNT = "page_count"
+        const val COLUMN_BLOCK_COUNT = "block_count"
+        const val COLUMN_IMPORTED_AT = "imported_at"
+        const val COLUMN_LAST_READ_AT = "last_read_at"
+        const val COLUMN_LAST_BLOCK = "last_block"
+
+        const val COLUMN_BOOK_ID = "book_id"
+
+        /** `index` es palabra reservada de SQL, de ahi el nombre largo. */
+        const val COLUMN_BLOCK_INDEX = "block_index"
+        const val COLUMN_LEVEL = "level"
+        const val COLUMN_PAGE = "page"
+
+        const val TABLE_BOOKMARKS = "book_bookmarks"
+        const val TABLE_HIGHLIGHTS = "book_highlights"
+
+        const val COLUMN_LAST_OFFSET = "last_offset"
+        const val COLUMN_CHAR_OFFSET = "char_offset"
+        const val COLUMN_START = "start_offset"
+
+        /** `end` es palabra reservada de SQL, de ahi el nombre largo. */
+        const val COLUMN_END = "end_offset"
+        const val COLUMN_NOTE = "note"
     }
 }

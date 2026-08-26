@@ -26,14 +26,21 @@ import androidx.compose.ui.res.stringResource
 import com.zenlauncher.zen.R
 import com.zenlauncher.zen.domain.apps.EssentialApps
 import com.zenlauncher.zen.domain.model.InstalledApp
+import com.zenlauncher.zen.domain.usage.UsageMood
+import com.zenlauncher.zen.domain.usage.UsageReading
 import com.zenlauncher.zen.presentation.components.MediaTransportBar
 import com.zenlauncher.zen.presentation.components.MonoLabel
+import com.zenlauncher.zen.presentation.components.HomeTile
 import com.zenlauncher.zen.presentation.components.ZenAppGrid
 import com.zenlauncher.zen.presentation.components.ZenHairline
+import com.zenlauncher.zen.domain.weather.WeatherReading
 import com.zenlauncher.zen.presentation.components.ZenHeaderStrip
 import com.zenlauncher.zen.presentation.components.ZenListRow
 import com.zenlauncher.zen.presentation.components.ZenScreen
 import com.zenlauncher.zen.presentation.components.ZenTagButton
+import com.zenlauncher.zen.presentation.usage.UsagePulse
+import com.zenlauncher.zen.presentation.usage.usageFaceDescription
+import com.zenlauncher.zen.presentation.usage.usageFaceLabel
 import com.zenlauncher.zen.presentation.theme.ZenColors
 import com.zenlauncher.zen.presentation.theme.ZenMotion
 import com.zenlauncher.zen.presentation.theme.ZenSpacing
@@ -44,8 +51,8 @@ import java.util.Locale
 /**
  * Pantalla de inicio.
  *
- * Jerarquia: la hora manda, con los dos botones propios de Zen a su derecha —empezar
- * una sesion y respirar un minuto—; debajo, el mando del
+ * Jerarquia: la hora manda, con los tres botones propios de Zen a su derecha —empezar
+ * una sesion, respirar un minuto y leer la portada del dia—; debajo, el mando del
  * reproductor y la reticula de aplicaciones que **no** quitan tiempo, ambos en la zona
  * del pulgar. Todo lo que administra la aplicacion —empezar una sesion desde el
  * principio, restringidas, registro y ajustes— vive plegado al final: son cosas que se
@@ -75,14 +82,25 @@ import java.util.Locale
 @Composable
 fun HomeScreen(
     state: HomeUiState,
+    usageReading: UsageReading,
+    /**
+     * El tiempo llega aparte del estado de la home, igual que la lectura de uso: su
+     * dueno es `WeatherViewModel`, que vive en el ambito de la Activity porque el mismo
+     * dato se ensena aqui y en su propia pantalla. Null cuando no hay ciudad elegida,
+     * no hubo red todavia o el ultimo dato envejecio.
+     */
+    weather: WeatherReading?,
     onLaunchApp: (InstalledApp) -> Unit,
     onOpenDrawer: () -> Unit,
     onOpenHomeApps: () -> Unit,
     onOpenNotes: () -> Unit,
+    onOpenReading: () -> Unit,
     onStartSession: () -> Unit,
     onBreathe: () -> Unit,
+    onOpenNews: () -> Unit,
     onOpenRestricted: () -> Unit,
     onOpenStats: () -> Unit,
+    onOpenUsage: () -> Unit,
     onOpenSettings: () -> Unit,
     onOpenNotifications: (String?) -> Unit,
     onExitZen: () -> Unit,
@@ -90,6 +108,7 @@ fun HomeScreen(
     onTogglePlayback: () -> Unit,
     onNextTrack: () -> Unit,
     onOpenPlayer: () -> Unit,
+    onOpenWeather: () -> Unit,
     modifier: Modifier = Modifier,
     locale: Locale = Locale.getDefault(),
 ) {
@@ -117,9 +136,31 @@ fun HomeScreen(
         // La franja de cabecera es lo unico que sobrevive a abrir el menu: da igual
         // donde estes, el dia y el estado de la sesion siguen en el mismo pixel. Por
         // eso queda fuera del intercambio, quieta.
+        // El slot derecho llevaba "SIN SESIÓN", que en esta pantalla es una constante:
+        // si hubiera sesion, la sesion sustituye a la pantalla entera y esto no se ve.
+        // Un rotulo que no puede decir otra cosa es exactamente el "00 permanente" que
+        // Zen evita, asi que ahora lleva el unico resumen del dia que cabe en dos
+        // caracteres.
+        //
+        // La cara no anade una fila ni mueve un pixel del reloj: vive en la franja que
+        // ya estaba. Es la unica forma de meter algo permanente en la pantalla de inicio
+        // sin que la pantalla crezca.
+        //
+        // Al lado de la cara va el tiempo, y por la misma razon: es el otro dato que se
+        // mira cincuenta veces al dia y no cabia en ninguna otra parte de la home sin
+        // anadir una fila. Aparece solo si la aplicacion del tiempo del telefono lo esta
+        // publicando —lo que no tiene nada detras no se pinta—, asi que en un telefono
+        // sin ella la franja queda exactamente como estaba.
+        val face = UsageMood.face(usageReading)
         ZenHeaderStrip(
             left = ZenDateFormats.date(state.nowMillis, locale),
-            right = stringResource(R.string.home_header_idle),
+            right = face.glyph,
+            // `:)` es texto, pero no es texto que se pueda leer en voz alta.
+            rightDescription = stringResource(usageFaceDescription(face)),
+            onRightClick = onOpenUsage,
+            secondary = weather?.let { weatherGlyph(it) },
+            secondaryDescription = weather?.let { weatherDescription(it) },
+            onSecondaryClick = onOpenWeather,
         )
 
         // El menu ocupa la pantalla entera, no un hueco dentro de la home: al abrirlo se
@@ -138,22 +179,28 @@ fun HomeScreen(
                 if (open) {
                     MenuBody(
                         state = state,
+                        usageReading = usageReading,
                         onStartSession = onStartSession,
                         onOpenNotifications = onOpenNotifications,
                         onOpenRestricted = onOpenRestricted,
                         onOpenStats = onOpenStats,
+                        onOpenUsage = onOpenUsage,
                         onOpenSettings = onOpenSettings,
                         onExitZen = onExitZen,
                     )
                 } else {
                     HomeBody(
                         state = state,
+                        usageReading = usageReading,
                         onLaunchApp = onLaunchApp,
                         onOpenDrawer = onOpenDrawer,
                         onOpenHomeApps = onOpenHomeApps,
                         onOpenNotes = onOpenNotes,
+                        onOpenReading = onOpenReading,
                         onStartSession = onStartSession,
                         onBreathe = onBreathe,
+                        onOpenNews = onOpenNews,
+                        onOpenUsage = onOpenUsage,
                         onOpenNotifications = onOpenNotifications,
                         onPreviousTrack = onPreviousTrack,
                         onTogglePlayback = onTogglePlayback,
@@ -176,12 +223,16 @@ fun HomeScreen(
 @Composable
 private fun ColumnScope.HomeBody(
     state: HomeUiState,
+    usageReading: UsageReading,
     onLaunchApp: (InstalledApp) -> Unit,
     onOpenDrawer: () -> Unit,
     onOpenHomeApps: () -> Unit,
     onOpenNotes: () -> Unit,
+    onOpenReading: () -> Unit,
     onStartSession: () -> Unit,
     onBreathe: () -> Unit,
+    onOpenNews: () -> Unit,
+    onOpenUsage: () -> Unit,
     onOpenNotifications: (String?) -> Unit,
     onPreviousTrack: () -> Unit,
     onTogglePlayback: () -> Unit,
@@ -200,14 +251,23 @@ private fun ColumnScope.HomeBody(
             style = ZenTextStyles.Clock,
             color = ZenColors.Foreground,
         )
-        // Las dos unicas acciones con boton propio, apiladas donde cae el pulgar al
-        // mirar la hora: arrancar una sesion y respirar un minuto. Ninguna abre una
-        // aplicacion ni lleva a una lista; son las dos cosas que Zen sabe hacer por si
+        // Las acciones con boton propio, apiladas donde cae el pulgar al mirar la
+        // hora: arrancar una sesion, respirar un minuto y leer la portada del dia.
+        // Ninguna abre una aplicacion ajena; son las cosas que Zen sabe hacer por si
         // mismo, y por eso no bajan al menu.
         //
-        // `IntrinsicSize.Max` mide el rotulo mas largo —RESPIRA— y los dos marcos salen
-        // con ese ancho: apilados, dos marcos de anchos distintos se leen como un fallo
-        // de maquetacion.
+        // NOTICIAS es el tercero y **el ultimo que cabe**: los tres marcos miden mas de
+        // alto que el reloj que tienen al lado, y el cuarto se comeria el aire que la
+        // reticula reparte abajo. Lo siguiente que se quiera anadir va al menu.
+        //
+        // Va aqui abajo y no en la reticula porque no es una aplicacion —no se lanza
+        // nada, se abre una pantalla de Zen— y porque leer noticias es justo lo que un
+        // launcher de este tipo no debe poner en el camino: hay que ir a buscarlo, como
+        // Respira.
+        //
+        // `IntrinsicSize.Max` mide el rotulo mas largo —NOTICIAS— y los tres marcos
+        // salen con ese ancho: apilados, marcos de anchos distintos se leen como un
+        // fallo de maquetacion.
         Column(
             modifier = Modifier.width(IntrinsicSize.Max),
             horizontalAlignment = Alignment.End,
@@ -223,6 +283,13 @@ private fun ColumnScope.HomeBody(
                 text = stringResource(R.string.home_breathe_button),
                 onClick = onBreathe,
                 onClickLabel = stringResource(R.string.home_breathe_button_label),
+                modifier = Modifier.fillMaxWidth(),
+                stretch = true,
+            )
+            ZenTagButton(
+                text = stringResource(R.string.home_news_button),
+                onClick = onOpenNews,
+                onClickLabel = stringResource(R.string.home_news_button_label),
                 modifier = Modifier.fillMaxWidth(),
                 stretch = true,
             )
@@ -258,6 +325,23 @@ private fun ColumnScope.HomeBody(
         }
     }
 
+    // El pulso del dia. Misma regla que el mando de arriba —lo que no tiene nada detras
+    // no se pinta—: con el dia en calma o en normal esto no existe y la home queda
+    // exactamente como estaba. No es una cuarta fila permanente; es una fila que casi
+    // siempre no esta. Ver [UsagePulse].
+    AnimatedVisibility(
+        visible = usageReading.worthShowing,
+        enter = ZenMotion.RevealEnter,
+        exit = ZenMotion.RevealExit,
+    ) {
+        Column {
+            Spacer(Modifier.height(ZenSpacing.Large))
+            ZenHairline()
+            UsagePulse(reading = usageReading, onOpen = onOpenUsage)
+            ZenHairline()
+        }
+    }
+
     Spacer(Modifier.height(ZenSpacing.Large))
 
     // Solo se rotula lo que necesita explicarse. La reticula de favoritos se entiende
@@ -268,11 +352,37 @@ private fun ColumnScope.HomeBody(
         Spacer(Modifier.height(ZenSpacing.Small))
     }
 
+    // Notas y Lectura son celdas mas de la reticula, no filas de abajo junto a "Menu".
+    // Estuvo ahi y se leia como una opcion de administracion —mismo filete, mismo tono,
+    // mismos dos puntos que "Menu"— cuando es el sitio donde se escribe, algo que se
+    // abre a diario y se usa como una aplicacion. Aqui lo parece porque lo es.
+    //
+    // Y la home no crece: la fila de ancho completo que ocupaba (64dp) se va, y en su
+    // lugar entra media fila de reticula (60dp). Con un numero impar de aplicaciones cae
+    // en el hueco que la ultima fila ya dejaba vacio y no ocupa ni eso.
+    //
+    // Lectura entra al lado de Notas y por la misma razon: es algo que se abre a diario
+    // y se usa como una aplicacion, no una opcion de administracion. Las dos juntas
+    // ocupan **una fila entera** de reticula, asi que con un numero par de aplicaciones
+    // la home crece una fila (60dp) respecto a tener solo Notas. Es el limite: la
+    // reticula no puede pasar de [EssentialApps.MAX_HOME_APPS] y **estas dos celdas son
+    // las unicas que no son aplicaciones**. La siguiente idea de "algo siempre visible"
+    // vuelve a ser el menu.
     ZenAppGrid(
-        apps = state.homeApps,
-        notificationCounts = state.notificationCounts,
-        onLaunchApp = onLaunchApp,
-        onOpenNotifications = { app -> onOpenNotifications(app.packageName) },
+        tiles = state.homeApps.map { app ->
+            HomeTile(
+                label = app.label,
+                onClick = { onLaunchApp(app) },
+                notifications = state.notificationCounts[app.packageName] ?: 0,
+                onOpenNotifications = { onOpenNotifications(app.packageName) },
+            )
+        } + HomeTile(
+            label = stringResource(R.string.home_notes),
+            onClick = onOpenNotes,
+        ) + HomeTile(
+            label = stringResource(R.string.home_reading),
+            onClick = onOpenReading,
+        ),
     )
     ZenHairline()
 
@@ -303,31 +413,22 @@ private fun ColumnScope.HomeBody(
         ZenHairline()
     }
 
-    // Todo el aire sobrante va aqui: las notas quedan pegadas a la fila del menu y la
-    // parte de arriba no se mueve.
+    // Todo el aire sobrante va aqui: la fila del menu queda anclada abajo y la parte de
+    // arriba no se mueve.
     Spacer(Modifier.weight(1f).fillMaxWidth())
 
-    ZenHairline()
-    // Notas. Vive abajo, con "Menu", y no encima de la reticula: lo de arriba es para lo
-    // que se usa cada dia. Estuvo aqui marcada PRONTO y sin reaccionar al toque mientras
-    // no existia, que es como debe estar una fila que no lleva a ninguna parte; ahora
-    // lleva, asi que se toca.
-    ZenListRow(
-        label = stringResource(R.string.home_notes),
-        index = "··",
-        labelColor = ZenColors.Secondary,
-        onClick = onOpenNotes,
-    )
 }
 
 /** La otra cara: solo las acciones de administracion. */
 @Composable
 private fun ColumnScope.MenuBody(
     state: HomeUiState,
+    usageReading: UsageReading,
     onStartSession: () -> Unit,
     onOpenNotifications: (String?) -> Unit,
     onOpenRestricted: () -> Unit,
     onOpenStats: () -> Unit,
+    onOpenUsage: () -> Unit,
     onOpenSettings: () -> Unit,
     onExitZen: () -> Unit,
 ) {
@@ -339,11 +440,13 @@ private fun ColumnScope.MenuBody(
     HomeActions(
         restrictedCount = state.restrictedCount,
         notificationTotal = state.notificationTotal,
+        usageReading = usageReading,
         onOpenNotifications = { onOpenNotifications(null) },
         onExitZen = onExitZen,
         onStartSession = onStartSession,
         onOpenRestricted = onOpenRestricted,
         onOpenStats = onOpenStats,
+        onOpenUsage = onOpenUsage,
         onOpenSettings = onOpenSettings,
     )
 
@@ -393,11 +496,13 @@ private fun MenuToggleRow(open: Boolean, onToggle: () -> Unit) {
 private fun HomeActions(
     restrictedCount: Int,
     notificationTotal: Int,
+    usageReading: UsageReading,
     onOpenNotifications: () -> Unit,
     onExitZen: () -> Unit,
     onStartSession: () -> Unit,
     onOpenRestricted: () -> Unit,
     onOpenStats: () -> Unit,
+    onOpenUsage: () -> Unit,
     onOpenSettings: () -> Unit,
 ) {
     ZenHairline()
@@ -420,6 +525,25 @@ private fun HomeActions(
         labelColor = ZenColors.Secondary,
         onClick = onOpenRestricted,
         trailing = { MonoLabel(text = "%02d".format(restrictedCount)) },
+    )
+    ZenHairline()
+    // El uso del movil entra por aqui y no por una fila fija de la home: en un dia
+    // tranquilo no hay nada que decir, y la puerta tiene que existir igual para poder
+    // mirarlo cuando a uno le apetezca. El escalon viaja en el rotulo de la derecha,
+    // asi que el menu ya lo dice sin abrir nada.
+    ZenListRow(
+        label = stringResource(R.string.action_usage),
+        labelColor = ZenColors.Secondary,
+        onClick = onOpenUsage,
+        trailing = {
+            MonoLabel(
+                text = stringResource(usageFaceLabel(UsageMood.face(usageReading))),
+                // El ambar esta reservado a las marcas de estado de 6dp, nunca a
+                // texto: aqui el escalon se distingue por el tono, y lo que dice es la
+                // palabra —USO ALTO, EXCESO—, no el color.
+                color = if (usageReading.worthShowing) ZenColors.Foreground else ZenColors.Dim,
+            )
+        },
     )
     ZenHairline()
     ZenListRow(

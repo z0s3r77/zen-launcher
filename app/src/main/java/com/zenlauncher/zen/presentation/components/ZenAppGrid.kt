@@ -27,12 +27,31 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.zenlauncher.zen.R
-import com.zenlauncher.zen.domain.model.InstalledApp
 import com.zenlauncher.zen.presentation.theme.ZenColors
 import com.zenlauncher.zen.presentation.theme.ZenSpacing
 import com.zenlauncher.zen.presentation.theme.ZenTextStyles
 
 private const val COLUMNS = 2
+
+/**
+ * Una celda de la reticula.
+ *
+ * No es "una aplicacion instalada" a proposito: es **algo que se abre desde la pantalla
+ * de inicio y se usa como si fuera una aplicacion**. Notas lo es. Vivia abajo, como una
+ * fila igual que "Menu", y por eso se leia como una opcion de administracion en lugar de
+ * como el sitio donde se escribe; ahora es una celda mas, con su numero, en la misma
+ * lengua visual que WhatsApp o Spotify.
+ *
+ * La home **no crece** por esto: la fila de ancho completo que ocupaba Notas (64dp)
+ * desaparece y en su lugar aparece media fila de reticula (60dp), y con un numero impar
+ * de aplicaciones ni siquiera eso, porque Notas cae en el hueco que ya quedaba vacio.
+ */
+data class HomeTile(
+    val label: String,
+    val onClick: () -> Unit,
+    val notifications: Int = 0,
+    val onOpenNotifications: (() -> Unit)? = null,
+)
 
 /**
  * Rejilla de dos columnas para las aplicaciones de la pantalla de inicio.
@@ -47,14 +66,11 @@ private const val COLUMNS = 2
  */
 @Composable
 fun ZenAppGrid(
-    apps: List<InstalledApp>,
-    onLaunchApp: (InstalledApp) -> Unit,
+    tiles: List<HomeTile>,
     modifier: Modifier = Modifier,
-    notificationCounts: Map<String, Int> = emptyMap(),
-    onOpenNotifications: (InstalledApp) -> Unit = {},
 ) {
     Column(modifier = modifier.fillMaxWidth()) {
-        apps.chunked(COLUMNS).forEachIndexed { rowIndex, rowApps ->
+        tiles.chunked(COLUMNS).forEachIndexed { rowIndex, rowApps ->
             ZenHairline()
             Row(
                 modifier = Modifier
@@ -63,7 +79,7 @@ fun ZenAppGrid(
                     // de la fila aunque una celda ocupe dos lineas por `fontScale`.
                     .height(IntrinsicSize.Min),
             ) {
-                rowApps.forEachIndexed { columnIndex, app ->
+                rowApps.forEachIndexed { columnIndex, tile ->
                     if (columnIndex > 0) {
                         Box(
                             Modifier
@@ -74,11 +90,8 @@ fun ZenAppGrid(
                         Spacer(Modifier.width(ZenSpacing.Medium))
                     }
                     AppCell(
-                        app = app,
+                        tile = tile,
                         index = rowIndex * COLUMNS + columnIndex + 1,
-                        notifications = notificationCounts[app.packageName] ?: 0,
-                        onClick = { onLaunchApp(app) },
-                        onOpenNotifications = { onOpenNotifications(app) },
                         modifier = Modifier.weight(1f),
                     )
                 }
@@ -92,16 +105,13 @@ fun ZenAppGrid(
 
 @Composable
 private fun AppCell(
-    app: InstalledApp,
+    tile: HomeTile,
     index: Int,
-    notifications: Int,
-    onClick: () -> Unit,
-    onOpenNotifications: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Column(
         modifier = modifier
-            .clickable(role = Role.Button, onClick = onClick)
+            .clickable(role = Role.Button, onClick = tile.onClick)
             .heightIn(min = CELL_HEIGHT)
             .padding(end = ZenSpacing.Medium),
         verticalArrangement = Arrangement.Center,
@@ -112,17 +122,18 @@ private fun AppCell(
         ) {
             MonoLabel(text = "%02d".format(index), color = ZenColors.Dim)
             Spacer(Modifier.weight(1f))
-            if (notifications > 0) {
+            val onOpenNotifications = tile.onOpenNotifications
+            if (tile.notifications > 0 && onOpenNotifications != null) {
                 NotificationBadge(
-                    count = notifications,
-                    label = app.label,
+                    count = tile.notifications,
+                    label = tile.label,
                     onClick = onOpenNotifications,
                 )
             }
         }
         Spacer(Modifier.height(ZenSpacing.XSmall))
         Text(
-            text = app.label,
+            text = tile.label,
             style = ZenTextStyles.Tile,
             color = ZenColors.Foreground,
             maxLines = 1,

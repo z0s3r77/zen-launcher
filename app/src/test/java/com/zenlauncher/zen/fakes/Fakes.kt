@@ -9,6 +9,8 @@ import android.content.Intent
 import com.zenlauncher.zen.domain.media.MediaTransport
 import com.zenlauncher.zen.domain.media.NowPlaying
 import com.zenlauncher.zen.domain.model.ActiveSession
+import com.zenlauncher.zen.domain.news.NewsEdition
+import com.zenlauncher.zen.domain.reading.ReadingSettings
 import com.zenlauncher.zen.domain.notifications.AppNotification
 import com.zenlauncher.zen.domain.notifications.NotificationsRepository
 import com.zenlauncher.zen.domain.model.InstalledApp
@@ -16,6 +18,8 @@ import com.zenlauncher.zen.domain.model.ZenDuration
 import com.zenlauncher.zen.domain.model.ZenSession
 import com.zenlauncher.zen.domain.repository.InstalledAppsRepository
 import com.zenlauncher.zen.domain.repository.PreferencesRepository
+import com.zenlauncher.zen.domain.weather.WeatherPlace
+import com.zenlauncher.zen.domain.weather.WeatherReading
 import com.zenlauncher.zen.domain.repository.SessionRepository
 import com.zenlauncher.zen.domain.session.SessionAlarmScheduler
 import kotlinx.coroutines.flow.Flow
@@ -169,6 +173,12 @@ class FakePreferencesRepository(
     private val duration = MutableStateFlow(ZenDuration.Default)
     private val active = MutableStateFlow<ActiveSession?>(null)
     private val pendingSummary = MutableStateFlow<String?>(null)
+    private val lastDistraction = MutableStateFlow<Long?>(null)
+    private val place = MutableStateFlow<WeatherPlace?>(null)
+    private val weather = MutableStateFlow<WeatherReading?>(null)
+    private val weatherAttempt = MutableStateFlow<Long?>(null)
+    private val news = MutableStateFlow<NewsEdition?>(null)
+    private val reading = MutableStateFlow(ReadingSettings())
 
     override val restrictedPackages: Flow<Set<String>> = restricted.asStateFlow()
     override val favouritePackages: Flow<List<String>> = favourites.asStateFlow()
@@ -176,6 +186,12 @@ class FakePreferencesRepository(
     override val preferredDuration: Flow<ZenDuration> = duration.asStateFlow()
     override val activeSession: Flow<ActiveSession?> = active.asStateFlow()
     override val pendingSummarySessionId: Flow<String?> = pendingSummary.asStateFlow()
+    override val lastDistractionAtMillis: Flow<Long?> = lastDistraction.asStateFlow()
+    override val weatherPlace: Flow<WeatherPlace?> = place.asStateFlow()
+    override val lastWeather: Flow<WeatherReading?> = weather.asStateFlow()
+    override val lastWeatherAttemptAtMillis: Flow<Long?> = weatherAttempt.asStateFlow()
+    override val lastNews: Flow<NewsEdition?> = news.asStateFlow()
+    override val readingSettings: Flow<ReadingSettings> = reading.asStateFlow()
 
     override suspend fun setRestricted(packageName: String, restricted: Boolean) {
         this.restricted.value = if (restricted) {
@@ -197,6 +213,30 @@ class FakePreferencesRepository(
         this.duration.value = duration
     }
 
+    override suspend fun setWeatherPlace(place: WeatherPlace?) {
+        this.place.value = place
+        // Como en el repositorio de verdad: cambiar o quitar la ciudad invalida lo
+        // traido para la anterior.
+        weather.value = null
+        weatherAttempt.value = null
+    }
+
+    override suspend fun setLastWeather(reading: WeatherReading) {
+        weather.value = reading
+    }
+
+    override suspend fun setLastWeatherAttemptAt(millis: Long) {
+        weatherAttempt.value = millis
+    }
+
+    override suspend fun setLastNews(edition: NewsEdition) {
+        news.value = edition
+    }
+
+    override suspend fun setReadingSettings(settings: ReadingSettings) {
+        reading.value = settings
+    }
+
     override suspend fun putActiveSession(session: ActiveSession) {
         active.value = session
     }
@@ -211,6 +251,10 @@ class FakePreferencesRepository(
 
     override suspend fun clearPendingSummary() {
         pendingSummary.value = null
+    }
+
+    override suspend fun setLastDistractionAt(millis: Long) {
+        lastDistraction.value = millis
     }
 
     override suspend fun currentActiveSession(): ActiveSession? = active.value

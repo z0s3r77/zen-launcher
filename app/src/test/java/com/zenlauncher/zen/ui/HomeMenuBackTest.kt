@@ -6,6 +6,8 @@ import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import com.zenlauncher.zen.domain.model.InstalledApp
+import com.zenlauncher.zen.domain.usage.UsageLevel
+import com.zenlauncher.zen.domain.usage.UsageReading
 import com.zenlauncher.zen.presentation.home.HomeScreen
 import com.zenlauncher.zen.presentation.home.HomeUiState
 import com.zenlauncher.zen.presentation.theme.ZenTheme
@@ -39,14 +41,24 @@ class HomeMenuBackTest {
                             InstalledApp("com.phone", "Teléfono", "com.phone/.Main"),
                         ),
                     ),
+                    usageReading = UsageReading(
+                        level = UsageLevel.CALMA,
+                        screenMillis = 0L,
+                        unlocks = 0,
+                        topApp = null,
+                        measured = true,
+                    ),
                     onLaunchApp = {},
                     onOpenDrawer = {},
                     onOpenHomeApps = {},
                     onOpenNotes = {},
+                    onOpenReading = {},
                     onStartSession = {},
                     onBreathe = {},
+                    onOpenNews = {},
                     onOpenRestricted = {},
                     onOpenStats = {},
+                    onOpenUsage = {},
                     onOpenSettings = {},
                     onOpenNotifications = {},
                     onExitZen = {},
@@ -54,6 +66,8 @@ class HomeMenuBackTest {
                     onTogglePlayback = {},
                     onNextTrack = {},
                     onOpenPlayer = {},
+                    onOpenWeather = {},
+                    weather = null,
                     locale = Locale.forLanguageTag("es-ES"),
                 )
             }

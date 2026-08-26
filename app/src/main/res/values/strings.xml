@@ -1,4 +1,4 @@
-<resources>
+<resources xmlns:tools="http://schemas.android.com/tools">
     <string name="app_name">Zen</string>
 
     <!-- Notificaciones -->
@@ -8,7 +8,6 @@
     <string name="notification_session_ended">Sesión terminada</string>
 
     <!-- Launcher -->
-    <string name="home_header_idle">SIN SESIÓN</string>
     <string name="home_all_apps">Todas las aplicaciones</string>
     <string name="home_choose_apps">Elegir aplicaciones</string>
     <string name="home_essentials">ESENCIALES</string>
@@ -16,6 +15,8 @@
     <string name="home_zen_button_label">Iniciar una sesión Zen</string>
     <string name="home_breathe_button">RESPIRA</string>
     <string name="home_breathe_button_label">Respirar guiado durante un minuto</string>
+    <string name="home_news_button">NOTICIAS</string>
+    <string name="home_news_button_label">Leer la portada de noticias del día</string>
     <string name="home_menu">Menú</string>
     <string name="home_menu_section">MENÚ</string>
     <string name="home_notes">Notas</string>
@@ -50,8 +51,12 @@
 
     <!-- Notas -->
     <string name="notes_title">NOTAS</string>
-    <string name="notes_quick">Nota rápida</string>
+    <!-- Rotulos de boton enmarcado: van en mayusculas porque el marco los pinta en
+         la tipografia tecnica, igual que ZEN y RESPIRA en la pantalla de inicio -->
+    <string name="notes_quick">NOTA RÁPIDA</string>
     <string name="notes_quick_label">Capturar una idea ahora</string>
+    <string name="notes_develop">DESARROLLAR</string>
+    <string name="notes_develop_label">Pensar en voz alta sobre una idea</string>
     <string name="notes_search_placeholder">Buscar en las notas</string>
     <string name="notes_recent">IDEAS RECIENTES</string>
     <string name="notes_results">RESULTADOS</string>
@@ -59,6 +64,10 @@
     <string name="notes_no_results">NADA CON ESAS PALABRAS</string>
     <string name="notes_related">TAMBIÉN RELACIONADAS</string>
     <string name="notes_suggestions">POSIBLES CONEXIONES</string>
+    <string name="notes_patterns">PATRONES</string>
+    <string name="notes_project_suggestion_accept">Aceptar</string>
+    <string name="notes_project_suggestion_ignore">Ignorar</string>
+    <string name="notes_projects">PROYECTOS</string>
 
     <!-- Nota rápida -->
     <string name="quick_note_title">NOTA RÁPIDA</string>
@@ -81,6 +90,31 @@
     <string name="note_connect">Conectar</string>
     <string name="note_ignore">Ignorar</string>
     <string name="note_open_link">Abrir el enlace</string>
+    <string name="note_develop">Desarrollar esta idea</string>
+    <string name="note_stage_developed">DESARROLLADA</string>
+    <string name="note_stage_project">EN PROYECTO</string>
+    <string name="note_stage_done">TERMINADA</string>
+    <string name="note_project_row">Proyecto</string>
+    <string name="note_project_none">Sin proyecto</string>
+    <string name="note_project_new">Nuevo proyecto</string>
+
+    <!-- Desarrollar una idea -->
+    <string name="develop_title">DESARROLLAR</string>
+    <string name="develop_placeholder">Escribe o dicta la idea</string>
+    <string name="develop_central_question">PREGUNTA CENTRAL</string>
+    <string name="develop_approaches">ENFOQUES</string>
+    <string name="develop_questions">PREGUNTAS</string>
+    <string name="develop_save">Guardar</string>
+    <string name="develop_convert_project">Convertir en proyecto</string>
+    <string name="develop_project_placeholder">Título del proyecto</string>
+    <string name="develop_project_create">Crear proyecto</string>
+
+    <!-- Proyectos -->
+    <string name="projects_title">PROYECTOS</string>
+    <string name="projects_empty">TODAVÍA NO HAY PROYECTOS</string>
+    <string name="project_title">PROYECTO</string>
+    <string name="project_done">Marcar terminado</string>
+    <string name="project_finished">TERMINADO</string>
 
     <!-- Lista de aplicaciones -->
     <string name="drawer_title">APLICACIONES</string>
@@ -213,5 +247,244 @@
     <plurals name="setup_minutes">
         <item quantity="one">%1$d minuto</item>
         <item quantity="other">%1$d minutos</item>
+    </plurals>
+
+    <plurals name="develop_connections">
+        <item quantity="one">Se relaciona con %1$d nota anterior</item>
+        <item quantity="other">Se relaciona con %1$d notas anteriores</item>
+    </plurals>
+
+    <plurals name="notes_pattern_word">
+        <item quantity="one">%1$d nota menciona «%2$s»</item>
+        <item quantity="other">%1$d notas mencionan «%2$s»</item>
+    </plurals>
+
+    <plurals name="notes_project_suggestion">
+        <item quantity="one">%1$d idea podría formar un proyecto</item>
+        <item quantity="other">%1$d ideas podrían formar un proyecto</item>
+    </plurals>
+
+    <plurals name="notes_card_images">
+        <item quantity="one">%1$d FOTO</item>
+        <item quantity="other">%1$d FOTOS</item>
+    </plurals>
+
+    <plurals name="notes_card_links">
+        <item quantity="one">%1$d ENLACE</item>
+        <item quantity="other">%1$d ENLACES</item>
+    </plurals>
+
+    <plurals name="project_note_count">
+        <item quantity="one">%1$d nota</item>
+        <item quantity="other">%1$d notas</item>
+    </plurals>
+
+    <!-- Uso del movil -->
+    <string name="usage_title">USO DE HOY</string>
+    <string name="action_usage">Uso del móvil</string>
+    <string name="usage_face_label_bien">BIEN</string>
+    <string name="usage_face_label_regular">REGULAR</string>
+    <string name="usage_face_label_mal">USO ALTO</string>
+    <string name="usage_face_label_alarma">EXCESO</string>
+    <string name="usage_face_label_desconocido">SIN MEDIR</string>
+    <string name="usage_pulse_label">Ver el uso del móvil de hoy</string>
+    <string name="usage_screen_time">Tiempo de pantalla</string>
+    <string name="usage_unlocks">Desbloqueos</string>
+    <string name="usage_apps_section">POR APLICACIÓN</string>
+    <string name="usage_empty">SIN ACTIVIDAD MEDIDA HOY</string>
+    <string name="usage_no_access">Acceso de uso</string>
+    <string name="usage_no_access_body">Zen no puede medir nada hasta que le concedas el acceso de uso en Ajustes de Android. Los datos no salen del teléfono ni se guardan en disco: se leen al volver a la pantalla de inicio y se olvidan al cerrar.</string>
+    <string name="usage_grant">Conceder en Ajustes de Android</string>
+    <string name="usage_revoke">Se quita en la misma pantalla</string>
+    <string name="usage_app_summary">%1$s · %2$s</string>
+    <string name="usage_pulse_value">%1$s · %2$d</string>
+
+    <!-- Aviso de distraccion -->
+    <string name="distraction_title">ATENCIÓN</string>
+    <string name="distraction_kind_arrastre">ARRASTRE</string>
+    <string name="distraction_kind_repeticion">REPETICIÓN</string>
+    <string name="distraction_kind_picoteo">PICOTEO</string>
+    <string name="distraction_scattered">EL MÓVIL</string>
+    <string name="distraction_window">EN %1$d MIN</string>
+    <string name="distraction_body_arrastre">Una sola sentada, sin cortes. Zen no bloquea nada: solo te lo enseña antes de que sigas.</string>
+    <string name="distraction_body_repeticion">La misma aplicación, una y otra vez, en poco rato. Entre una vez y la siguiente no había nada nuevo.</string>
+    <string name="distraction_body_picoteo">Muchos saltos y ninguna parada. Es la forma que tiene el móvil de no dejarte en ningún sitio.</string>
+    <string name="distraction_breathe">RESPIRA</string>
+    <string name="distraction_breathe_label">Respirar un minuto</string>
+    <string name="distraction_session">SESIÓN ZEN</string>
+    <string name="distraction_session_label">Empezar una sesión Zen</string>
+    <string name="distraction_dismiss">Seguir como estaba</string>
+
+    <!-- Semana y patrones -->
+    <string name="usage_week">Semana</string>
+    <string name="usage_week_title">ÚLTIMOS 7 DÍAS</string>
+    <string name="usage_week_days">%1$d/%2$d DÍAS</string>
+    <string name="usage_week_average">Media diaria</string>
+    <string name="usage_week_total">Total de la semana</string>
+    <string name="usage_week_unlocks">Desbloqueos al día</string>
+    <string name="usage_week_loading">LEYENDO LA SEMANA…</string>
+    <string name="usage_week_empty">ANDROID NO CONSERVA NINGÚN DÍA TODAVÍA. VUELVE MAÑANA.</string>
+    <string name="usage_week_notice">Zen no guarda nada en disco: la semana se vuelve a leer de Android cada vez, y los días que el sistema ya no conserva salen sin medir.</string>
+    <string name="usage_week_row_value">%1$s/día</string>
+    <string name="usage_chart_high">USO ALTO</string>
+    <string name="usage_verdict_label">¿LO TIENES CONTROLADO?</string>
+    <string name="usage_verdict_control">SÍ</string>
+    <string name="usage_verdict_atencion">JUSTITO</string>
+    <string name="usage_verdict_fuera">NO</string>
+    <string name="usage_patterns_section">TU PATRÓN</string>
+    <string name="usage_patterns_none">NINGÚN PATRÓN DESTACA ESTA SEMANA</string>
+    <string name="usage_patterns_too_soon">HACEN FALTA DOS DÍAS MEDIDOS PARA HABLAR DE UN PATRÓN</string>
+    <string name="usage_pattern_ladrona">%1$s se lleva el %2$d%% de tu semana</string>
+    <string name="usage_pattern_repetida">Abres %1$s %2$d veces al día</string>
+    <string name="usage_pattern_subiendo">Los dos últimos días van un %1$d%% por encima de los anteriores</string>
+    <string name="usage_pattern_daily">%1$s AL DÍA</string>
+    <string name="usage_pattern_restrict">RESTRINGIR</string>
+    <string name="usage_pattern_restrict_label">Ir a aplicaciones restringidas</string>
+    <string name="usage_day_unmeasured">SIN DATOS</string>
+    <string name="usage_face_bien">Uso de hoy: bien. Ver el detalle</string>
+    <string name="usage_face_regular">Uso de hoy: regular. Ver el detalle</string>
+    <string name="usage_face_mal">Uso de hoy: alto. Ver el detalle</string>
+    <string name="usage_face_alarma">Uso de hoy: excesivo. Ver el detalle</string>
+    <string name="usage_face_desconocido">Uso de hoy: sin medir. Conceder el acceso de uso</string>
+
+    <!--
+      El tiempo. Los grados van sin unidad: el servicio devuelve Celsius y anadir la
+      letra serian dos caracteres mas en una franja de 10sp para un dato que no cambia.
+    -->
+    <string name="weather_degrees">%1$d°</string>
+    <string name="weather_despejado">despejado</string>
+    <string name="weather_nubes_claros">nubes y claros</string>
+    <string name="weather_nublado">nublado</string>
+    <string name="weather_lluvia">lluvia</string>
+    <string name="weather_tormenta">tormenta</string>
+    <string name="weather_nieve">nieve</string>
+    <string name="weather_niebla">niebla</string>
+    <string name="weather_title">TIEMPO</string>
+    <string name="weather_no_data_short">--</string>
+    <string name="weather_no_place">Elige una ciudad para ver el tiempo. Es lo único de Zen que usa internet: sin ciudad no se conecta a nada.</string>
+    <string name="weather_choose_place">ELEGIR CIUDAD</string>
+    <string name="weather_change_place">CAMBIAR DE CIUDAD</string>
+    <string name="weather_search_placeholder">Nombre de la ciudad</string>
+    <string name="weather_search_action">BUSCAR</string>
+    <string name="weather_searching">BUSCANDO…</string>
+    <string name="weather_search_empty">Ninguna ciudad con ese nombre, o no hay conexión.</string>
+    <string name="weather_choose_action">Elegir esta ciudad</string>
+    <string name="weather_clear_place">QUITAR</string>
+    <string name="weather_refresh">ACTUALIZAR</string>
+    <string name="weather_observed_at">LEÍDO A LAS %1$s</string>
+    <string name="weather_no_reading">Todavía sin dato. Toca ACTUALIZAR o vuelve a la pantalla de inicio.</string>
+    <string name="weather_stale">El último dato es de hace demasiado y ya no se enseña.</string>
+    <string name="settings_weather">Tiempo</string>
+    <string name="settings_weather_none">SIN CIUDAD</string>
+
+    <!-- En plural porque se lee en voz alta: "1 grados" chirría a quien lo escucha. -->
+    <plurals name="weather_description">
+        <item quantity="one">Tiempo: %1$d grado, %2$s. Ver el detalle</item>
+        <item quantity="other">Tiempo: %1$d grados, %2$s. Ver el detalle</item>
+    </plurals>
+
+    <plurals name="weather_description_plain">
+        <item quantity="one">Tiempo: %1$d grado. Ver el detalle</item>
+        <item quantity="other">Tiempo: %1$d grados. Ver el detalle</item>
+    </plurals>
+
+    <!-- Noticias -->
+    <string name="news_title">NOTICIAS</string>
+    <string name="news_no_date">--</string>
+    <string name="news_downloading">DESCARGANDO LA PORTADA…</string>
+    <string name="news_empty">No hay ninguna portada descargada y hoy no se ha podido bajar. Se descarga una sola vez al día: vuelve a intentarlo cuando haya conexión.</string>
+    <string name="news_failed">Hoy no se pudo bajar la portada. Esto es la última que se descargó.</string>
+    <string name="news_old_edition">PORTADA DE OTRO DÍA</string>
+    <string name="news_points">LO QUE TE TOCA HOY</string>
+    <string name="news_read">LEER LA NOTICIA</string>
+    <string name="news_open">Abrir la noticia completa en el navegador</string>
+    <string name="news_refresh">ACTUALIZAR</string>
+    <string name="news_source">LA DOXA · NOTICIASDOXA.ES</string>
+    <string name="news_downloaded_at">DESCARGADA A LAS %1$s</string>
+    <string name="news_downloaded_on">DESCARGADA EL %1$s A LAS %2$s</string>
+
+    <!--
+      Lectura: la biblioteca y el lector.
+
+      Todo en castellano y con la misma voz que el resto: rotulos tecnicos en mayusculas
+      para lo que se toca, frases normales para lo que se lee.
+    -->
+    <string name="home_reading">Lectura</string>
+    <string name="reading_title">LECTURA</string>
+    <string name="reading_add_book">AÑADIR LIBRO</string>
+    <string name="reading_add_book_label">Elegir un PDF del teléfono</string>
+    <string name="reading_my_books">MIS LIBROS</string>
+    <string name="reading_empty">TODAVÍA NO HAY LIBROS</string>
+    <string name="reading_percent">%1$d%%</string>
+
+    <!--
+      Dos descripciones y no una con hueco para el autor: encajar "sin autor conocido"
+      en "de %2$s" daba "de sin autor conocido", que en voz alta es justo lo que un
+      lector de pantalla no deberia tener que decir.
+
+      El aviso de ortografia es del corrector de ingles de lint sobre una aplicacion
+      escrita entera en castellano: "autor" no es "author" mal escrito.
+    -->
+    <string name="reading_book_description">%1$s, de %2$s. Llevas leído el %3$d%%.</string>
+    <string name="reading_book_description_no_author" tools:ignore="Typos">%1$s, sin autor conocido. Llevas leído el %2$d%%.</string>
+    <string name="reading_unsupported">Este teléfono no puede sacar el texto de un PDF: hace falta Android 15 o posterior.</string>
+
+    <string name="reading_import_opening">ABRIENDO EL LIBRO…</string>
+    <string name="reading_import_pages">LEYENDO %1$d / %2$d PÁGINAS</string>
+    <string name="reading_import_building">RECONSTRUYENDO EL TEXTO…</string>
+    <string name="reading_import_done">Añadido: %1$s</string>
+    <string name="reading_import_unreadable">Ese fichero no se pudo abrir. Puede que no sea un PDF, que esté dañado o que lleve contraseña.</string>
+    <string name="reading_import_no_text">Ese PDF no lleva texto dentro: son páginas escaneadas. Zen todavía no sabe leer imágenes.</string>
+    <string name="reading_import_dismiss">Descartar el aviso</string>
+
+    <string name="reader_loading">ABRIENDO EL LIBRO…</string>
+    <string name="reader_missing">Este libro ya no está en la biblioteca.</string>
+    <string name="reader_position">PÁG. %1$d / %2$d · %3$d%%</string>
+    <string name="reader_format">AJUSTAR</string>
+    <string name="reader_index">ÍNDICE</string>
+    <string name="reader_search">BUSCAR</string>
+    <string name="reader_text_size">LETRA</string>
+    <string name="reader_leading">INTERLÍNEA</string>
+    <string name="reader_margins">MÁRGENES</string>
+    <string name="reader_font">TIPOGRAFÍA</string>
+    <string name="reader_font_serif">SERIF</string>
+    <string name="reader_font_sans">ARCHIVO</string>
+    <string name="reader_decrease">Reducir %1$s</string>
+    <string name="reader_increase">Aumentar %1$s</string>
+    <string name="reader_no_index">Este libro no traía índice y no se han encontrado títulos en el texto.</string>
+    <string name="reader_no_index_pages">SIN ÍNDICE · SALTAR POR PÁGINAS</string>
+    <string name="reader_page">PÁGINA %1$d</string>
+    <string name="reader_jump_label">Saltar aquí</string>
+    <string name="reader_search_placeholder">Buscar en el libro</string>
+    <string name="reader_no_hits">NADA CON ESAS PALABRAS</string>
+    <string name="reader_marks">MARCAS</string>
+    <string name="reader_no_marks">Todavía no has marcado ni subrayado nada de este libro.</string>
+    <string name="reader_marks_pages">MARCAS DE PÁGINA</string>
+    <string name="reader_marks_highlights">SUBRAYADO</string>
+    <string name="reader_mark_remove">Quitar esta marca</string>
+    <string name="reader_previous_page">Página anterior</string>
+    <string name="reader_next_page">Página siguiente</string>
+    <string name="reader_bookmark">MARCAR</string>
+    <string name="reader_bookmarked">MARCADA</string>
+    <string name="reader_bookmark_add_label">Poner una marca en esta página</string>
+    <string name="reader_bookmark_remove_label">Quitar la marca de esta página</string>
+    <string name="reader_highlight">SUBRAYAR</string>
+    <string name="reader_highlight_remove">QUITAR</string>
+    <string name="reader_note">NOTA</string>
+    <string name="reader_extend">MÁS</string>
+    <string name="reader_cancel">CANCELAR</string>
+    <string name="reader_save">GUARDAR</string>
+    <string name="reader_note_placeholder">Escribe tu nota</string>
+    <string name="reader_delete">QUITAR EL LIBRO</string>
+    <string name="reader_delete_label">Quitar este libro de la biblioteca</string>
+
+    <plurals name="usage_openings">
+        <item quantity="one">%1$d APERTURA</item>
+        <item quantity="other">%1$d APERTURAS</item>
+    </plurals>
+
+    <plurals name="usage_app_openings">
+        <item quantity="one">%1$d vez</item>
+        <item quantity="other">%1$d veces</item>
     </plurals>
 </resources>
