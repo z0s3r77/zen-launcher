@@ -1,5 +1,6 @@
 package com.zenlauncher.zen.data
 
+import app.cash.turbine.test
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.datastore.preferences.core.Preferences
@@ -241,4 +242,41 @@ class DataStorePreferencesRepositoryTest {
         assertNull(repository.pendingSummarySessionId.first())
     }
 
+    /**
+     * Regresion de rendimiento: `DataStore.data` reparte el `Preferences` entero en cada
+     * escritura de **cualquier** clave. Sin `distinctUntilChanged`, guardar la marca del
+     * ultimo intento del tiempo hacia re-emitir tambien los favoritos, las restringidas y
+     * la sesion activa, que son tres de las fuentes del `combine` de la pantalla de
+     * inicio: tres armados completos de `HomeUiState` —filtrar todas las aplicaciones
+     * instaladas, construir el mapa por paquete, resolver las esenciales, contar los
+     * avisos— para producir tres veces el mismo objeto.
+     */
+    @Test
+    fun `escribir una clave no re-emite las demas`() = runTest {
+        repository.setFavourites(listOf("com.a", "com.b"))
+
+        repository.favouritePackages.test {
+            assertEquals(listOf("com.a", "com.b"), awaitItem())
+
+            // Tres escrituras en claves que no tienen nada que ver con los favoritos.
+            repository.setLastWeatherAttemptAt(1_000L)
+            repository.setLastDistractionAt(2_000L)
+            repository.setPreferredDuration(ZenDuration.ofMinutes(45))
+
+            expectNoEvents()
+        }
+    }
+
+    @Test
+    fun `escribir la misma clave con el mismo valor tampoco re-emite`() = runTest {
+        repository.setFavourites(listOf("com.a"))
+
+        repository.favouritePackages.test {
+            assertEquals(listOf("com.a"), awaitItem())
+
+            repository.setFavourites(listOf("com.a"))
+
+            expectNoEvents()
+        }
+    }
 }

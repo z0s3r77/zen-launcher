@@ -28,12 +28,29 @@ import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.withContext
 
-class SqliteSessionRepository(
-    context: Context,
+class SqliteSessionRepository internal constructor(
+    private val helper: ZenDatabaseHelper,
     private val io: CoroutineDispatcher = Dispatchers.IO,
 ) : SessionRepository {
 
-    private val helper = ZenDatabaseHelper(context.applicationContext)
+    /**
+     * Se recibe el ayudante en lugar de construirlo aqui.
+     *
+     * Los tres repositorios de Zen viven sobre el **mismo** fichero, `zen.db`, y cada
+     * uno construia su propio `SQLiteOpenHelper`: tres pools de conexiones abiertos
+     * sobre el mismo fichero, con su cache de paginas y sus sentencias preparadas
+     * duplicadas en memoria nativa del proceso del launcher. Ademas, en la primera
+     * instalacion abria una ventana de carrera real —ningun `CREATE TABLE` lleva
+     * `IF NOT EXISTS`— si dos de ellos se tocaban a la vez antes de que `onCreate`
+     * hubiera confirmado. Un fallo ahi deja el telefono sin pantalla de inicio.
+     *
+     * El constructor con `Context` se queda para los tests, que abren cada repositorio
+     * por su cuenta.
+     */
+    constructor(
+        context: Context,
+        io: CoroutineDispatcher = Dispatchers.IO,
+    ) : this(ZenDatabaseHelper(context.applicationContext), io)
 
     /** extraBufferCapacity para que emitir un cambio nunca suspenda al escritor. */
     private val invalidations = MutableSharedFlow<Unit>(extraBufferCapacity = 8)

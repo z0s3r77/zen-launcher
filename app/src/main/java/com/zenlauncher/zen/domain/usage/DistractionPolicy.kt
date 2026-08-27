@@ -33,6 +33,24 @@ object DistractionPolicy {
         sessionActive: Boolean,
     ): Boolean {
         if (compulsion == null) return false
+        return couldInterrupt(lastShownAtMillis, nowMillis, sessionActive)
+    }
+
+    /**
+     * Todo lo que [shouldInterrupt] decide **sin mirar la conducta**: la espera y la
+     * sesion.
+     *
+     * Existe para poder preguntarlo **antes** de leer los eventos de uso. Detectar una
+     * conducta cuesta consultar dos horas de eventos del sistema, y eso ocurria en cada
+     * vuelta a la pantalla de inicio para acabar descartando el aviso por la espera casi
+     * siempre. Aqui esta el mismo criterio y no una segunda copia: dos tablas de umbrales
+     * acaban contradiciendose.
+     */
+    fun couldInterrupt(
+        lastShownAtMillis: Long?,
+        nowMillis: Long,
+        sessionActive: Boolean,
+    ): Boolean {
         if (sessionActive) return false
         if (lastShownAtMillis == null) return true
 

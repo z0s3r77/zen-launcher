@@ -43,6 +43,14 @@ class CachedInstalledApps(
      * se da de baja y el launcher deja de recibir nada estando en segundo plano. La
      * espera cubre las transiciones entre pantallas, donde un ViewModel se va justo
      * antes de que llegue el siguiente.
+     *
+     * **`replay = 0` y no 1, y esto no se cambia.** Con replay uno, `shareIn` conserva la
+     * ultima lista dentro de su propio buffer, y esa copia no la puede soltar [release]:
+     * el aviso de memoria dejaria de liberar nada y ademas un colector nuevo recibiria la
+     * lista vieja justo despues de haberla soltado, que es lo contrario de lo que se
+     * pidio. Quien llega tarde no se queda sin lista porque el prefijo cacheado de
+     * [observeInstalledApps] se la da antes de suscribirse. Fijado en
+     * `CachedInstalledAppsTest.soltar la cache la vacia`.
      */
     private val upstream: Flow<List<InstalledApp>> = delegate.observeInstalledApps()
         .onEach { cached.value = it }

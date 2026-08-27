@@ -80,7 +80,6 @@ class HomeScreenTest {
             ZenTheme {
                 HomeScreen(
                     state = HomeUiState(
-                        nowMillis = 1_700_000_000_000,
                         homeApps = homeApps,
                         usingEssentials = usingEssentials,
                         restrictedCount = 2,
@@ -89,6 +88,9 @@ class HomeScreenTest {
                         nowPlaying = nowPlaying,
                         notificationCounts = notificationCounts,
                     ),
+                    // La hora entra como lambda desde que se separo del estado: sin
+                    // eso, el cambio de minuto recomponia la pantalla entera.
+                    nowMillis = { 1_700_000_000_000 },
                     usageReading = usageReading,
                     onLaunchApp = { launched += it },
                     onMoveApp = { from, to -> moves += from to to },

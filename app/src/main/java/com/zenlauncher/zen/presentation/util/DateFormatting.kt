@@ -4,6 +4,7 @@ import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.util.Locale
+import java.util.concurrent.ConcurrentHashMap
 
 /**
  * Formateo con `java.time` y zona del sistema resuelta en cada llamada, para que un
@@ -13,13 +14,30 @@ object ZenDateFormats {
 
     private val timeFormatter: DateTimeFormatter = DateTimeFormatter.ofPattern("HH:mm")
 
+    /**
+     * Formateadores ya construidos, por patron e idioma.
+     *
+     * `DateTimeFormatter.ofPattern` no es barato: analiza el patron y monta un
+     * `DateTimeFormatterBuilder` entero. Se construia uno **en cada llamada**, y
+     * [shortDate] se llama una vez por fila en las listas de notas y de libros, o sea
+     * dentro del cuerpo de un elemento que se desplaza. Aqui se construye uno por patron
+     * e idioma y se reutiliza.
+     *
+     * `ConcurrentHashMap` porque las listas se componen desde el hilo principal pero
+     * nada impide que un test o una precomposicion entren desde otro.
+     */
+    private val formatters = ConcurrentHashMap<String, DateTimeFormatter>()
+
+    private fun formatter(pattern: String, locale: Locale): DateTimeFormatter =
+        formatters.getOrPut("$pattern|${locale.toLanguageTag()}") {
+            DateTimeFormatter.ofPattern(pattern, locale)
+        }
+
     fun time(epochMillis: Long): String = format(epochMillis, timeFormatter)
 
     /** Fecha larga en el idioma del dispositivo, en mayusculas para la franja tecnica. */
-    fun date(epochMillis: Long, locale: Locale): String {
-        val formatter = DateTimeFormatter.ofPattern("EEEE d MMMM", locale)
-        return format(epochMillis, formatter).uppercase(locale)
-    }
+    fun date(epochMillis: Long, locale: Locale): String =
+        format(epochMillis, formatter("EEEE d MMMM", locale)).uppercase(locale)
 
     /**
      * Fecha corta para una lista: `12 MAR`, o `12 MAR 24` si es de otro ano.
@@ -33,7 +51,7 @@ object ZenDateFormats {
         val date = Instant.ofEpochMilli(epochMillis).atZone(zone)
         val now = Instant.ofEpochMilli(nowMillis).atZone(zone)
         val pattern = if (date.year == now.year) "d MMM" else "d MMM yy"
-        return format(epochMillis, DateTimeFormatter.ofPattern(pattern, locale))
+        return format(epochMillis, formatter(pattern, locale))
             .uppercase(locale)
             // Algunos idiomas ponen punto al abreviar el mes; en una franja tecnica
             // monoespaciada ese punto es un caracter que no dice nada.

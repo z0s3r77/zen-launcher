@@ -12,6 +12,7 @@ import com.zenlauncher.zen.data.apps.LocalAppRestrictionManager
 import com.zenlauncher.zen.data.battery.AndroidBatteryReader
 import com.zenlauncher.zen.data.battery.SystemSettingsBatterySaverController
 import com.zenlauncher.zen.data.db.SqliteSessionRepository
+import com.zenlauncher.zen.data.db.ZenDatabaseHelper
 import com.zenlauncher.zen.data.media.MediaSessionTransport
 import com.zenlauncher.zen.data.notes.FileAttachmentStore
 import com.zenlauncher.zen.data.news.DoxaNews
@@ -97,7 +98,18 @@ class ZenContainer(context: Context) {
         DataStorePreferencesRepository(appContext)
     }
 
-    val sessions: SessionRepository by lazy { SqliteSessionRepository(appContext) }
+    /**
+     * **Un solo ayudante para todo `zen.db`.**
+     *
+     * Los tres repositorios que viven sobre este fichero —sesiones, notas y libros—
+     * construian cada uno el suyo, o sea tres pools de conexiones a la misma base de
+     * datos con su cache de paginas duplicada en memoria nativa, y una carrera posible
+     * en la primera instalacion (ver [SqliteSessionRepository]). Perezoso como todo lo
+     * demas: quien no abre nada que use la base de datos no la abre.
+     */
+    private val database: ZenDatabaseHelper by lazy { ZenDatabaseHelper(appContext) }
+
+    val sessions: SessionRepository by lazy { SqliteSessionRepository(database) }
 
     /**
      * La lectura de verdad, envuelta en la cache compartida.
@@ -134,7 +146,7 @@ class ZenContainer(context: Context) {
      */
     val memory: LauncherMemory by lazy { LauncherMemory(listOf(launcherApps)) }
 
-    val notes: NotesRepository by lazy { SqliteNotesRepository(appContext) }
+    val notes: NotesRepository by lazy { SqliteNotesRepository(database) }
 
     val noteAttachments: AttachmentStore by lazy { FileAttachmentStore(appContext, clock) }
 
@@ -163,7 +175,7 @@ class ZenContainer(context: Context) {
     // descarga. Si el telefono no lo trae, la fila de dictar no llega a pintarse.
     val dictation: Dictation by lazy { OnDeviceDictation(appContext) }
 
-    val books: BookRepository by lazy { SqliteBookRepository(appContext) }
+    val books: BookRepository by lazy { SqliteBookRepository(database) }
 
     val bookCovers: BookCoverStore by lazy { FileBookCoverStore(appContext) }
 

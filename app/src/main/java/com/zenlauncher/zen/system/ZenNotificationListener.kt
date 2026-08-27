@@ -5,9 +5,18 @@ import android.service.notification.NotificationListenerService
 import android.service.notification.StatusBarNotification
 import android.util.Log
 import com.zenlauncher.zen.domain.notifications.AppNotification
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.FlowPreview
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.channels.BufferOverflow
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.debounce
+import kotlinx.coroutines.launch
 
 /**
  * Oyente de notificaciones. Tiene dos trabajos y ninguno de los dos es avisar.
@@ -29,14 +38,55 @@ import kotlinx.coroutines.flow.asStateFlow
  * [notifications], y muere con el proceso. El acceso sigue siendo **opcional**: sin el,
  * el sistema no enlaza este servicio, la lista se queda vacia y todo lo demas funciona.
  */
+@OptIn(FlowPreview::class)
 class ZenNotificationListener : NotificationListenerService() {
+
+    /**
+     * Trabajo del oyente, fuera del hilo principal.
+     *
+     * Los callbacks de `NotificationListenerService` llegan en el hilo principal **del
+     * proceso del launcher**, que es el mismo que dibuja la pantalla de inicio. Y cada
+     * uno relee el panel entero por IPC. Con musica sonando hay reproductores que
+     * actualizan su notificacion de continuo: eso era una rafaga de IPC mas mapeo
+     * robandole tiempo al hilo que esta pintando.
+     */
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+
+    /**
+     * Peticiones de relectura, con antirrebote.
+     *
+     * `DROP_OLDEST` con capacidad uno: si llegan diez avisos en rafaga, releer diez veces
+     * el panel da diez veces casi lo mismo. Solo interesa la ultima.
+     */
+    private val refreshes = MutableSharedFlow<Unit>(
+        replay = 0,
+        extraBufferCapacity = 1,
+        onBufferOverflow = BufferOverflow.DROP_OLDEST,
+    )
+
+    override fun onCreate() {
+        super.onCreate()
+        scope.launch {
+            // El antirrebote: una relectura por rafaga, no una por notificacion.
+            refreshes.debounce(REFRESH_DEBOUNCE_MILLIS).collect { publish() }
+        }
+    }
+
+    override fun onDestroy() {
+        // El servicio lo construye y lo destruye el sistema: sin esto, la corrutina de
+        // arriba seguiria viva contra un servicio muerto.
+        scope.cancel()
+        super.onDestroy()
+    }
 
     /**
      * Al enlazar llega el panel entero de golpe: sin esto, la lista se quedaria vacia
      * hasta que alguien publicase algo nuevo, que puede tardar horas.
+     *
+     * Esta si va sin esperar: es la primera lectura y no hay rafaga que absorber.
      */
     override fun onListenerConnected() {
-        publish()
+        scope.launch { publish() }
     }
 
     /**
@@ -48,11 +98,11 @@ class ZenNotificationListener : NotificationListenerService() {
     }
 
     override fun onNotificationPosted(sbn: StatusBarNotification?) {
-        publish()
+        refreshes.tryEmit(Unit)
     }
 
     override fun onNotificationRemoved(sbn: StatusBarNotification?) {
-        publish()
+        refreshes.tryEmit(Unit)
     }
 
     /**
@@ -89,6 +139,12 @@ class ZenNotificationListener : NotificationListenerService() {
 
     companion object {
         private const val TAG = "ZenNotificationListener"
+
+        /**
+         * Lo bastante corto para que las marcas se sientan inmediatas y lo bastante
+         * largo para tragarse la rafaga de un reproductor actualizando su notificacion.
+         */
+        private const val REFRESH_DEBOUNCE_MILLIS = 150L
 
         private val state = MutableStateFlow<List<AppNotification>>(emptyList())
 

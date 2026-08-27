@@ -13,8 +13,11 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.width
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.State
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.TransformOrigin
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.unit.dp
 import com.zenlauncher.zen.presentation.theme.ZenColors
@@ -52,7 +55,7 @@ fun PlaybackEqualizer(
         verticalAlignment = Alignment.Bottom,
     ) {
         BAR_PERIODS_MILLIS.forEachIndexed { index, period ->
-            val level = if (playing) {
+            val level: State<Float>? = if (playing) {
                 transition.animateFloat(
                     initialValue = REST_LEVEL,
                     targetValue = 1f,
@@ -63,15 +66,26 @@ fun PlaybackEqualizer(
                         initialStartOffset = BAR_OFFSETS[index],
                     ),
                     label = "barra",
-                ).value
+                )
             } else {
-                REST_LEVEL
+                null
             }
 
+            // La barra mide **siempre** lo mismo y se escala. Antes el alto era
+            // `MAX_BAR_HEIGHT * level` con `level` leido en la composicion: cada
+            // fotograma recomponia las cuatro barras y remedia la fila, la columna y —por
+            // la cadena de medida— el cuerpo de la pantalla de inicio, a 120 Hz mientras
+            // sonara algo. Leyendo el valor dentro de `graphicsLayer`, la animacion se
+            // queda en la capa: ni composicion ni medida, solo dibujo.
             Box(
                 Modifier
                     .width(BAR_WIDTH)
-                    .height(MAX_BAR_HEIGHT * level)
+                    .height(MAX_BAR_HEIGHT)
+                    .graphicsLayer {
+                        // El origen abajo: la barra crece hacia arriba, como estaba.
+                        transformOrigin = TransformOrigin(0.5f, 1f)
+                        scaleY = level?.value ?: REST_LEVEL
+                    }
                     .background(if (playing) ZenColors.Foreground else ZenColors.Faint),
             )
         }

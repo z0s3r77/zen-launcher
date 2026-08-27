@@ -1,14 +1,12 @@
 package com.zenlauncher.zen.presentation.reading
 
-import android.graphics.BitmapFactory
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.border
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.ImageBitmap
-import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
+import com.zenlauncher.zen.presentation.util.rememberScaledBitmap
 import com.zenlauncher.zen.presentation.theme.ZenColors
 import com.zenlauncher.zen.presentation.theme.ZenSpacing
 
@@ -28,13 +26,14 @@ fun BookCover(
     absolutePath: String,
     modifier: Modifier = Modifier,
 ) {
-    val bitmap: ImageBitmap? = remember(absolutePath) {
-        runCatching { BitmapFactory.decodeFile(absolutePath)?.asImageBitmap() }.getOrNull()
-    }
+    // Ya reducida y fuera del hilo principal: ver [rememberScaledBitmap]. En una lista de
+    // fichas, decodificar la portada entera dentro de la composicion es leer del disco en
+    // mitad del desplazamiento.
+    val bitmap by rememberScaledBitmap(absolutePath, MAX_EDGE_PX)
 
-    if (bitmap != null) {
+    bitmap?.let { image ->
         Image(
-            bitmap = bitmap,
+            bitmap = image,
             // Sin descripcion: la ficha entera ya lleva una, con el titulo y el autor.
             contentDescription = null,
             modifier = modifier.border(ZenSpacing.Hairline, ZenColors.Border),
@@ -42,3 +41,6 @@ fun BookCover(
         )
     }
 }
+
+/** Una portada de ficha no pasa de un tercio del ancho de la pantalla. */
+private const val MAX_EDGE_PX = 512

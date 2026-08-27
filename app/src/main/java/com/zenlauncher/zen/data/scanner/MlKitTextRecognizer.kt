@@ -46,20 +46,48 @@ class MlKitTextRecognizer(
     private val appContext = context.applicationContext
 
     /**
-     * Perezoso: quien escanea sin pedir OCR no llega a construir el reconocedor ni a
-     * cargar el modelo en memoria. Es la misma razon por la que el tiempo y las noticias
-     * son `by lazy` en el contenedor.
+     * El cliente de ML Kit, **reconstruible**.
+     *
+     * Era un `by lazy`, y eso lo hacia irrecuperable: este objeto vive en el contenedor,
+     * o sea que es uno solo para todo el proceso, y `ScannerViewModel.onCleared` lo
+     * cierra al salir del escaner. Con `by lazy`, cerrado una vez quedaba cerrado para
+     * siempre pero seguia siendo no nulo, asi que [available] respondia `true`, el boton
+     * de OCR se pintaba y la **segunda** visita al escaner llamaba a `process` sobre un
+     * detector cerrado: `IllegalStateException` sincrona, sin capturar, y el proceso del
+     * launcher muerto. Un launcher no puede morir por pedir OCR dos veces.
+     *
+     * Ahora [close] lo pone a null y la siguiente lectura lo vuelve a crear. Sigue siendo
+     * perezoso —quien escanea sin pedir OCR no carga el modelo— y ademas es reversible.
+     *
+     * `@Volatile` mas `synchronized`: se crea desde `Dispatchers.Default` (ver [read]) y
+     * se cierra desde el hilo principal (`onCleared`).
      */
-    private val client by lazy {
-        runCatching { TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS) }
-            .onFailure { Log.w(TAG, "ML Kit no pudo crear el reconocedor", it) }
-            .getOrNull()
-    }
+    @Volatile
+    private var client: com.google.mlkit.vision.text.TextRecognizer? = null
 
-    override val available: Boolean get() = client != null
+    private fun client(): com.google.mlkit.vision.text.TextRecognizer? =
+        client ?: synchronized(this) {
+            client ?: runCatching {
+                TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS)
+            }
+                .onFailure { Log.w(TAG, "ML Kit no pudo crear el reconocedor", it) }
+                .getOrNull()
+                .also { client = it }
+        }
+
+    /**
+     * Si el dispositivo puede reconocer texto.
+     *
+     * Ya no construye el cliente para responder. Antes lo hacia —era `client != null`— y
+     * `ScannerViewModel` lo consulta al construirse, asi que abrir el escaner cargaba el
+     * modelo de OCR aunque nadie fuera a pedirlo, justo lo contrario de lo que decia el
+     * comentario de arriba. ML Kit con el modelo empaquetado esta siempre disponible; lo
+     * que puede fallar es crear el cliente, y eso lo maneja [read] devolviendo null.
+     */
+    override val available: Boolean get() = true
 
     override suspend fun read(imagePath: String): RecognizedText? = withContext(io) {
-        val recognizer = client ?: return@withContext null
+        val recognizer = client() ?: return@withContext null
         val image = runCatching {
             InputImage.fromFilePath(appContext, Uri.fromFile(File(imagePath)))
         }.getOrElse {
@@ -87,8 +115,15 @@ class MlKitTextRecognizer(
         )
     }
 
+    /**
+     * Suelta el modelo **y la referencia**. Sin poner el campo a null, el objeto quedaba
+     * inservible para siempre: ver [client].
+     */
     override fun close() {
-        runCatching { client?.close() }
+        synchronized(this) {
+            runCatching { client?.close() }
+            client = null
+        }
     }
 
     /**

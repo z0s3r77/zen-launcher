@@ -5,8 +5,11 @@ import android.content.Context
 import android.database.sqlite.SQLiteDatabase
 import androidx.test.core.app.ApplicationProvider
 import com.zenlauncher.zen.data.db.SqliteSessionRepository
+import com.zenlauncher.zen.data.db.ZenDatabaseHelper
 import com.zenlauncher.zen.data.notes.SqliteNotesRepository
 import com.zenlauncher.zen.data.reading.SqliteBookRepository
+import com.zenlauncher.zen.domain.model.SessionOutcome
+import com.zenlauncher.zen.domain.model.ZenSession
 import com.zenlauncher.zen.domain.notes.Note
 import com.zenlauncher.zen.domain.reading.Book
 import com.zenlauncher.zen.domain.reading.Bookmark
@@ -17,6 +20,7 @@ import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
@@ -274,5 +278,45 @@ class ZenDatabaseMigrationTest {
         assertEquals("Una idea", notes.note("a")?.body)
         assertEquals(emptyList<Any>(), sessions.all())
         assertEquals(null, books.book("no-existe"))
+    }
+
+    /**
+     * Regresion: los tres repositorios viven sobre el **mismo** fichero, `zen.db`, y cada
+     * uno construia su propio `SQLiteOpenHelper`. Eso son tres pools de conexiones a la
+     * misma base de datos —cache de paginas y sentencias preparadas duplicadas en memoria
+     * nativa del proceso del launcher— y, en primera instalacion, tres candidatos a
+     * ejecutar `onCreate` a la vez sobre unos `CREATE TABLE` que no llevan
+     * `IF NOT EXISTS`.
+     *
+     * Compartiendo el ayudante, los tres escriben y leen por la misma conexion.
+     */
+    @Test
+    fun `los tres repositorios comparten una sola conexion a zen db`() = runTest {
+        val helper = ZenDatabaseHelper(context)
+        val sessions = SqliteSessionRepository(helper, UnconfinedTestDispatcher())
+        val notes = SqliteNotesRepository(helper, UnconfinedTestDispatcher())
+        val books = SqliteBookRepository(helper, UnconfinedTestDispatcher())
+
+        notes.save(Note("nota", 1_000L, 1_000L, "Una idea"))
+        sessions.recordIfAbsent(
+            ZenSession(
+                id = "sesion",
+                startedAtMillis = 1_000L,
+                endedAtMillis = 61_000L,
+                plannedDurationMillis = 60_000L,
+                actualDurationMillis = 60_000L,
+                initialBatteryPercent = 84,
+                finalBatteryPercent = 83,
+                initialCharging = false,
+                finalCharging = false,
+                outcome = SessionOutcome.COMPLETED,
+                restrictedAppsCount = 0,
+            ),
+        )
+
+        // Los tres siguen viendo lo suyo por la misma conexion.
+        assertEquals(1, notes.observeNotes().first().size)
+        assertEquals(1, sessions.all().size)
+        assertTrue(books.observeBooks().first().isEmpty())
     }
 }

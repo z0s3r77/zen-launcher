@@ -1,14 +1,11 @@
 package com.zenlauncher.zen.presentation.scanner
 
-import android.graphics.BitmapFactory
 import androidx.compose.foundation.Image
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.ImageBitmap
-import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
-import kotlin.math.max
+import com.zenlauncher.zen.presentation.util.rememberScaledBitmap
 
 /**
  * Una pagina escaneada, leida del disco a un tamano razonable para la pantalla.
@@ -35,37 +32,20 @@ internal fun ScanImage(
     contentScale: ContentScale = ContentScale.Fit,
     maxEdgePx: Int = DEFAULT_MAX_EDGE_PX,
 ) {
-    val bitmap: ImageBitmap? = remember(path, revision, maxEdgePx) {
-        runCatching { decodeScaled(path, maxEdgePx)?.asImageBitmap() }.getOrNull()
-    }
+    // La lectura y la reduccion viven ahora en [rememberScaledBitmap], compartidas con
+    // las imagenes de Notas y las portadas de Lectura. Ademas de dejar de repetir el
+    // codigo, la decodificacion sale del hilo principal: aqui era una hoja de hasta
+    // 2400 px leida del disco dentro de la composicion.
+    val bitmap by rememberScaledBitmap(path, maxEdgePx, revision)
 
-    if (bitmap != null) {
+    bitmap?.let { image ->
         Image(
-            bitmap = bitmap,
+            bitmap = image,
             contentDescription = contentDescription,
             modifier = modifier,
             contentScale = contentScale,
         )
     }
-}
-
-/**
- * Dos pasadas: la primera solo lee las medidas, la segunda decodifica ya reducida.
- *
- * `inSampleSize` solo admite potencias de dos, asi que se busca la mayor que deje la
- * imagen por encima del limite pedido: quedarse corto es una imagen borrosa, y pasarse es
- * memoria que no se ve.
- */
-private fun decodeScaled(path: String, maxEdgePx: Int): android.graphics.Bitmap? {
-    val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
-    BitmapFactory.decodeFile(path, bounds)
-    val longest = max(bounds.outWidth, bounds.outHeight)
-    if (longest <= 0) return null
-
-    var sample = 1
-    while (longest / (sample * 2) >= maxEdgePx) sample *= 2
-
-    return BitmapFactory.decodeFile(path, BitmapFactory.Options().apply { inSampleSize = sample })
 }
 
 /** Suficiente para la pantalla mas grande sin reservar la foto entera. */

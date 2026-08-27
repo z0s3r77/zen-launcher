@@ -307,6 +307,33 @@ class ScannerViewModelTest {
     }
 
     @Test
+    fun `un reconocedor que revienta no tumba el launcher`() = runTest {
+        // Regresion: el reconocedor vive en el contenedor, o sea uno para todo el
+        // proceso, y `onCleared` lo cierra al salir del escaner. Con el cliente en un
+        // `by lazy`, cerrado quedaba cerrado para siempre pero `available` seguia
+        // diciendo true: la segunda visita al escaner llamaba a `process` sobre un
+        // detector cerrado, ML Kit lanzaba de forma sincrona y la excepcion subia por
+        // `viewModelScope` sin que nadie la cogiera. El proceso del launcher moria y el
+        // telefono se quedaba sin pantalla de inicio.
+        val reconocedor = FakeTextRecognizer()
+        val viewModel = build(recognizer = reconocedor)
+        viewModel.onPhotoTaken("foto".toByteArray(), rotationDegrees = 0)
+        advanceUntilIdle()
+
+        // Alguien lo cerro antes (otra visita al escaner que ya termino).
+        reconocedor.close()
+
+        viewModel.runOcr()
+        advanceUntilIdle()
+
+        // Se dice que el OCR fallo, y el documento y la aplicacion siguen en pie.
+        val estado = viewModel.state.value
+        assertEquals(ScanError.OCR_FAILED, estado.error)
+        assertEquals(1, estado.document.pageCount)
+        assertFalse(estado.ocrRunning)
+    }
+
+    @Test
     fun `un OCR fallido no se lleva por delante el documento`() = runTest {
         val viewModel = build(recognizer = FakeTextRecognizer(result = null))
         viewModel.onPhotoTaken("foto".toByteArray(), rotationDegrees = 0)

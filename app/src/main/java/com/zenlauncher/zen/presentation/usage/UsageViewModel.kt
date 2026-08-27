@@ -219,17 +219,31 @@ class UsageViewModel(
         // otro debajo del dedo del usuario.
         if (_distraction.value != null) return
 
+        // **Se pregunta por la politica antes de leer los eventos, no despues.**
+        //
+        // `recentOpenings` consulta dos horas de eventos de uso —cientos de entradas en
+        // un telefono normal—, y esto corria en **cada** vuelta a la pantalla de inicio,
+        // cincuenta veces al dia, para que `DistractionPolicy` descartase el aviso casi
+        // siempre por no haber pasado aun el intervalo minimo. Preguntando primero, la
+        // consulta cara solo ocurre cuando de verdad podria salir un aviso.
+        val lastShown = preferences.lastDistractionAtMillis.first()
+        val sessionActive = preferences.currentActiveSession() != null
+        if (!DistractionPolicy.couldInterrupt(lastShown, nowMillis, sessionActive)) return
+
         val compulsion = CompulsionDetector.detect(
             openings = usage.recentOpenings(DETECTION_WINDOW_MILLIS, nowMillis),
             nowMillis = nowMillis,
             exempt = EssentialApps.candidatePackages,
         )
 
+        // La espera y la sesion ya se comprobaron arriba; lo que queda por decidir es si
+        // la conducta detectada da para avisar. Se reusan los valores leidos entonces en
+        // lugar de volver a preguntarle a DataStore por lo mismo.
         val interrupt = DistractionPolicy.shouldInterrupt(
             compulsion = compulsion,
-            lastShownAtMillis = preferences.lastDistractionAtMillis.first(),
+            lastShownAtMillis = lastShown,
             nowMillis = nowMillis,
-            sessionActive = preferences.currentActiveSession() != null,
+            sessionActive = sessionActive,
         )
         if (!interrupt || compulsion == null) return
 

@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
@@ -152,8 +153,13 @@ private fun NowPlayingCard(
     ) {
         val artwork = nowPlaying.artwork
         if (artwork != null) {
+            // `remember` por bitmap: `asImageBitmap` envuelve, no copia, pero devolvia una
+            // envoltura nueva en cada recomposicion y con ella un `BitmapPainter` nuevo,
+            // asi que `Image` no podia saltarse nada. La caratula es la misma hasta que
+            // cambia de cancion.
+            val image = remember(artwork) { artwork.asImageBitmap() }
             Image(
-                bitmap = artwork.asImageBitmap(),
+                bitmap = image,
                 // Decorativa: el titulo y el artista, que van al lado, ya lo dicen todo.
                 contentDescription = null,
                 contentScale = ContentScale.Crop,

@@ -46,7 +46,10 @@ class RestrictedAppsViewModel(
             .filter { needle.isEmpty() || it.label.lowercase().contains(needle) }
             // Las ya restringidas suben arriba: es la lista que el usuario revisa.
             .map { RestrictedAppRow(it, it.packageName in restricted) }
-            .sortedWith(compareByDescending<RestrictedAppRow> { it.restricted }.thenBy { it.app.sortKey })
+            .sortedWith(
+                compareByDescending<RestrictedAppRow> { it.restricted }
+                    .thenBy(String.CASE_INSENSITIVE_ORDER) { it.app.label },
+            )
         RestrictedAppsUiState(
             query = currentQuery,
             rows = rows,

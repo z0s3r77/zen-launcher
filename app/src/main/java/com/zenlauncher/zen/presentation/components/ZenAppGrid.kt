@@ -156,6 +156,7 @@ fun ZenAppGrid(
                         movable = reorderable && index < movable,
                         movableCount = movable,
                         dragging = from == index,
+                        measuring = from != null,
                         // El numero que ensena la celda en la mano es **el destino**, no
                         // el hueco de donde salio: es el unico sitio donde cabe decir
                         // adonde va a caer, y cambia mientras el dedo se mueve.
@@ -201,6 +202,8 @@ private fun AppCell(
     movable: Boolean,
     movableCount: Int,
     dragging: Boolean,
+    /** Hay **algun** arrastre en curso en la retícula, sea o no el de esta celda. */
+    measuring: Boolean,
     slot: Int,
     dragOffset: Offset,
     onMove: ((from: Int, to: Int) -> Unit)?,
@@ -237,21 +240,38 @@ private fun AppCell(
                 onDragEnd = onDragEnd,
                 onDragCancel = onDragCancel,
             )
+            // Medir los huecos **solo mientras hay un arrastre en curso**.
+            //
+            // Estaba puesto siempre, y `onGloballyPositioned` se dispara en cada pasada
+            // de maquetacion: desde que la home se desplaza, arrastrar la columna hacia
+            // abajo hacia que cada celda calculase su `boundsInRoot` y reservase un
+            // `Slot` nuevo en cada fotograma, para nada —no habia ningun arrastre de
+            // celda que necesitase saber donde estan los huecos—.
+            //
+            // La medida llega un fotograma tarde al empezar a arrastrar, y eso ya estaba
+            // contemplado: hasta que estan medidos todos los huecos el destino es el
+            // hueco de origen, que es la respuesta segura.
+            .then(
+                if (movable && measuring) {
+                    Modifier.onGloballyPositioned { coordinates ->
+                        val bounds = coordinates.boundsInRoot()
+                        onSlotMeasured(
+                            HomeAppOrder.Slot(
+                                // El centro **sin** el arrastre: es el hueco, no la
+                                // celda. Con la celda en la mano medida donde esta,
+                                // el destino se perseguiria a si mismo.
+                                x = bounds.center.x - dragOffset.x,
+                                y = bounds.center.y - dragOffset.y,
+                            ),
+                        )
+                    }
+                } else {
+                    Modifier
+                },
+            )
             .then(
                 if (movable) {
                     Modifier
-                        .onGloballyPositioned { coordinates ->
-                            val bounds = coordinates.boundsInRoot()
-                            onSlotMeasured(
-                                HomeAppOrder.Slot(
-                                    // El centro **sin** el arrastre: es el hueco, no la
-                                    // celda. Con la celda en la mano medida donde esta,
-                                    // el destino se perseguiria a si mismo.
-                                    x = bounds.center.x - dragOffset.x,
-                                    y = bounds.center.y - dragOffset.y,
-                                ),
-                            )
-                        }
                         // Arrastrar no existe para quien navega con un lector de
                         // pantalla. Las dos acciones dicen lo mismo con palabras y no
                         // dependen de poder apuntar a un sitio.

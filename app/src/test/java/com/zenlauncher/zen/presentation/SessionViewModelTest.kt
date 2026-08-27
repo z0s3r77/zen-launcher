@@ -15,7 +15,9 @@ import com.zenlauncher.zen.fakes.RecordingRestrictionManager
 import com.zenlauncher.zen.presentation.session.SessionViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.advanceUntilIdle
+import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
@@ -125,5 +127,50 @@ class SessionViewModelTest {
             val summary = sessions.find(preferences.pendingSummarySessionId.first()!!)
             assertEquals(SessionOutcome.ABANDONED, summary!!.outcome)
             assertEquals(5 * 60_000L, summary.actualDurationMillis)
+        }
+
+    /**
+     * **El hallazgo central de la auditoria de rendimiento.**
+     *
+     * `ZenActivity` colecta esto en **todas** las pantallas, tambien con la home quieta,
+     * para decidir si la sesion sustituye a la pantalla entera. Antes colectaba
+     * `state`, que empieza por un `tickerFlow` de un segundo y arrastra `battery.observe`:
+     * el launcher despertaba el hilo principal una vez por segundo para siempre, y
+     * mantenia registrado un receptor de `ACTION_BATTERY_CHANGED` para un dato que la
+     * pantalla de inicio ya ni pinta.
+     */
+    @Test
+    fun `mirar si hay sesion no enciende el reloj ni el receptor de bateria`() =
+        runTest(mainDispatcherRule.dispatcher.scheduler) {
+            val model = viewModel()
+
+            model.active.test {
+                assertNull(awaitItem())
+
+                // Si aqui hubiera un ticker de un segundo, esto emitiria sesenta veces.
+                advanceTimeBy(60 * 1_000L)
+                runCurrent()
+                expectNoEvents()
+            }
+
+            assertEquals(0, battery.observers)
+        }
+
+    @Test
+    fun `la pantalla de sesion si enciende el reloj y la bateria`() =
+        runTest(mainDispatcherRule.dispatcher.scheduler) {
+            // La contrapartida del test de arriba: dentro de la sesion el cronometro
+            // tiene que correr y el porcentaje que se ensena tiene que venir de algun
+            // sitio. Lo que se arreglo no es que existan, es donde viven.
+            val model = viewModel()
+
+            model.state.test {
+                awaitItem()
+                advanceTimeBy(1_000L)
+                runCurrent()
+                assertNotNull(awaitItem())
+            }
+
+            assertEquals(1, battery.observers)
         }
 }

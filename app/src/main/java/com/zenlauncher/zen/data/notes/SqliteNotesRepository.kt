@@ -63,12 +63,16 @@ import java.nio.ByteOrder
  * SQLite. Con una base de datos de un solo proceso, releer una lista de notas cuesta
  * menos que mantener la maquinaria para calcular que cambio.
  */
-class SqliteNotesRepository(
-    context: Context,
+class SqliteNotesRepository internal constructor(
+    private val helper: ZenDatabaseHelper,
     private val io: CoroutineDispatcher = Dispatchers.IO,
 ) : NotesRepository {
 
-    private val helper = ZenDatabaseHelper(context.applicationContext)
+    /** Ver [com.zenlauncher.zen.data.db.SqliteSessionRepository]: un solo ayudante por fichero. */
+    constructor(
+        context: Context,
+        io: CoroutineDispatcher = Dispatchers.IO,
+    ) : this(ZenDatabaseHelper(context.applicationContext), io)
 
     /** extraBufferCapacity para que emitir un cambio nunca suspenda al escritor. */
     private val invalidations = MutableSharedFlow<Unit>(extraBufferCapacity = 8)

@@ -431,7 +431,16 @@ class ScannerViewModel(
 
         viewModelScope.launch {
             _state.update { it.copy(ocrRunning = true) }
-            val text = recognizer.read(page.renderedPath)
+            // Nada nativo se llama sin red debajo: ML Kit lanza de forma sincrona si el
+            // cliente esta cerrado, y una excepcion aqui sube por `viewModelScope` sin
+            // que nadie la coja y deja el telefono sin pantalla de inicio. Quedarse sin
+            // texto es un extra que falla; morir no es una opcion.
+            //
+            // Sin `Log` a proposito: el fallo ya se le cuenta al usuario como
+            // `OCR_FAILED`, y el registro vive en la capa de datos, que es la que sabe
+            // que fallo. Ademas `android.util.Log` no existe en un test JVM y reventaria
+            // justo en el camino que este bloque protege.
+            val text = runCatching { recognizer.read(page.renderedPath) }.getOrNull()
             _state.update { current ->
                 val target = current.document.page(page.id)
                 current.copy(

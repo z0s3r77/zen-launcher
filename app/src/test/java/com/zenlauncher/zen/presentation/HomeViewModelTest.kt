@@ -21,7 +21,9 @@ import com.zenlauncher.zen.fakes.appNotification
 import com.zenlauncher.zen.fakes.installedApp
 import com.zenlauncher.zen.presentation.home.HomeViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import com.zenlauncher.zen.presentation.util.ONE_MINUTE_MILLIS
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
@@ -60,8 +62,8 @@ class HomeViewModelTest {
         notifications: FakeNotificationsRepository = FakeNotificationsRepository(),
         installed: List<InstalledApp> = apps,
         repository: FakeInstalledAppsRepository = FakeInstalledAppsRepository(installed),
+        clock: FakeZenClock = FakeZenClock(),
     ): HomeViewModel {
-        val clock = FakeZenClock()
         return HomeViewModel(
             preferences = preferences,
             installedApps = repository,
@@ -86,12 +88,39 @@ class HomeViewModelTest {
     }
 
     @Test
-    fun `el primer estado ya trae la hora para que el reloj no aparezca de golpe`() {
+    fun `el primer valor del reloj ya trae la hora para que no aparezca de golpe`() {
         // Regresion: el estado inicial llegaba vacio y lo mas grande de la pantalla se
-        // pintaba un instante despues. El combine espera a la lista de aplicaciones.
-        val state = viewModel().state.value
+        // pintaba un instante despues. El combine espera a la lista de aplicaciones, asi
+        // que la hora se lee de forma sincrona. Vive en su propio flujo desde que se
+        // separo del estado: mezclada en el `combine`, cada minuto recomponia la
+        // pantalla de inicio entera para cambiar dos cifras.
+        assertTrue(viewModel().nowMillis.value > 0)
+    }
 
-        assertTrue(state.nowMillis > 0)
+    @Test
+    fun `el reloj late en su propio flujo, aparte del estado de la home`() = runTest {
+        // Regresion: `nowMillis` viajaba dentro de `HomeUiState`, asi que cada minuto
+        // salia un estado nuevo y `HomeScreen` —que lo recibe entero— se recomponia con
+        // toda su reticula, celda por celda, para cambiar dos cifras del reloj.
+        //
+        // Que el estado ya no puede moverse con el tiempo lo garantiza el propio tipo:
+        // `HomeUiState` no tiene ningun campo de hora y no compila si se le pone. Lo que
+        // hay que probar aqui es lo otro: que el reloj sigue latiendo por su cuenta.
+        //
+        // `advanceTimeBy` mas `runCurrent`, nunca `advanceUntilIdle`: el reloj late para
+        // siempre y esperar a que no quede trabajo pendiente no termina jamas.
+        val clock = FakeZenClock()
+        val model = viewModel(clock = clock)
+
+        model.nowMillis.test {
+            val horaInicial = awaitItem()
+
+            clock.advance(ONE_MINUTE_MILLIS)
+            advanceTimeBy(ONE_MINUTE_MILLIS)
+            runCurrent()
+
+            assertTrue(awaitItem() > horaInicial)
+        }
     }
 
     @Test
@@ -401,6 +430,10 @@ class HomeViewModelTest {
 
             viewModel.openNowPlaying()
         }
+        // Abrir es `suspend` desde que resolver el componente salio del hilo principal:
+        // `getActivityList` cruza IPC y toca disco, y eso no puede ir entre el dedo y la
+        // respuesta. Hay que dejar correr la corrutina antes de mirar.
+        runCurrent()
 
         assertEquals(listOf("com.spotify.music"), installedApps.launched.map { it.packageName })
     }

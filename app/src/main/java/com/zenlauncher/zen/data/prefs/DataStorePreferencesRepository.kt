@@ -23,6 +23,7 @@ import com.zenlauncher.zen.domain.weather.WeatherPlace
 import com.zenlauncher.zen.domain.weather.WeatherReading
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import java.io.IOException
@@ -52,32 +53,48 @@ class DataStorePreferencesRepository(
         if (cause is IOException) emit(emptyPreferences()) else throw cause
     }
 
+    /**
+     * Un flujo por clave, y **solo emite cuando esa clave cambia**.
+     *
+     * `DataStore.data` reparte el `Preferences` entero en cada escritura de
+     * **cualquier** clave, asi que sin este `distinctUntilChanged` guardar la marca del
+     * ultimo intento del tiempo —cada media hora, al volver a la pantalla de inicio—
+     * hacia re-emitir tambien las restringidas, los favoritos y la sesion activa, que
+     * son tres de las fuentes del `combine` de la home. Resultado: tres armados
+     * completos de `HomeUiState` (filtrar las restringidas sobre la lista entera de
+     * aplicaciones, construir el mapa por paquete, resolver las esenciales, contar los
+     * avisos) para producir tres veces el mismo objeto. El `StateFlow` final los
+     * conflactaba y la interfaz no se enteraba; el trabajo se hacia igual.
+     */
+    private fun <T> readKey(read: (Preferences) -> T): Flow<T> =
+        data.map(read).distinctUntilChanged()
+
     override val restrictedPackages: Flow<Set<String>> =
-        data.map { it[Keys.Restricted].orEmpty() }
+        readKey { it[Keys.Restricted].orEmpty() }
 
     override val favouritePackages: Flow<List<String>> =
-        data.map { prefs -> prefs[Keys.Favourites]?.decodeList().orEmpty() }
+        readKey { prefs -> prefs[Keys.Favourites]?.decodeList().orEmpty() }
 
-    override val preferredDuration: Flow<ZenDuration> = data.map { prefs ->
+    override val preferredDuration: Flow<ZenDuration> = readKey { prefs ->
         ZenDuration.ofMinutesOrNull(prefs[Keys.PreferredMinutes]) ?: ZenDuration.Default
     }
 
     override val favouritesSeeded: Flow<Boolean> =
-        data.map { it[Keys.FavouritesSeeded] == true }
+        readKey { it[Keys.FavouritesSeeded] == true }
 
-    override val activeSession: Flow<ActiveSession?> = data.map { it.readActiveSession() }
+    override val activeSession: Flow<ActiveSession?> = readKey { it.readActiveSession() }
 
-    override val pendingSummarySessionId: Flow<String?> = data.map { it[Keys.PendingSummary] }
+    override val pendingSummarySessionId: Flow<String?> = readKey { it[Keys.PendingSummary] }
 
-    override val lastDistractionAtMillis: Flow<Long?> = data.map { it[Keys.LastDistraction] }
+    override val lastDistractionAtMillis: Flow<Long?> = readKey { it[Keys.LastDistraction] }
 
-    override val weatherPlace: Flow<WeatherPlace?> = data.map { it.readWeatherPlace() }
+    override val weatherPlace: Flow<WeatherPlace?> = readKey { it.readWeatherPlace() }
 
-    override val lastWeather: Flow<WeatherReading?> = data.map { it.readWeatherReading() }
+    override val lastWeather: Flow<WeatherReading?> = readKey { it.readWeatherReading() }
 
-    override val lastWeatherAttemptAtMillis: Flow<Long?> = data.map { it[Keys.WeatherAttemptAt] }
+    override val lastWeatherAttemptAtMillis: Flow<Long?> = readKey { it[Keys.WeatherAttemptAt] }
 
-    override val lastNews: Flow<NewsEdition?> = data.map { prefs ->
+    override val lastNews: Flow<NewsEdition?> = readKey { prefs ->
         prefs[Keys.News]?.let(NewsJson::decode)
     }
 
@@ -90,7 +107,7 @@ class DataStorePreferencesRepository(
      * escalon, asi que un fichero de preferencias tocado a mano no puede dejar el lector
      * con letra de tamano cero.
      */
-    override val readingSettings: Flow<ReadingSettings> = data.map { prefs ->
+    override val readingSettings: Flow<ReadingSettings> = readKey { prefs ->
         ReadingSettings(serif = prefs[Keys.ReadingSerif] != false)
             // Cada escalon pasa por su `with...`, que es quien lo acota: un valor fuera
             // de rango en el fichero de preferencias vuelve al extremo mas cercano en

@@ -24,15 +24,20 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
+/**
+ * Lo que ensena la pantalla de sesion **mientras la sesion corre**.
+ *
+ * Aqui vivian ademas `preferredDuration` y dos campos del ahorro de bateria. Se
+ * sacaron: los dos del ahorro no los leia nadie —solo Ajustes, que tiene su propio
+ * estado— y la duracion preferida la usa la pantalla de preparacion, que no necesita
+ * ni cronometro ni bateria. Mientras estuvieron aqui, colectar este estado obligaba a
+ * mantener vivo el receptor de `ACTION_POWER_SAVE_MODE_CHANGED` para nada.
+ */
 data class SessionUiState(
     val nowMillis: Long = 0L,
     val active: ActiveSession? = null,
     val progress: SessionProgress? = null,
     val battery: BatteryStatus = BatteryStatus.Unknown,
-    val preferredDuration: ZenDuration = ZenDuration.Default,
-    val batterySaverEnabled: Boolean = false,
-    val batterySaverCapability: BatterySaverController.Capability =
-        BatterySaverController.Capability.OBSERVE_ONLY,
 )
 
 class SessionViewModel(
@@ -63,21 +68,62 @@ class SessionViewModel(
     private val _confirmingFinish = MutableStateFlow(false)
     val confirmingFinish: StateFlow<Boolean> = _confirmingFinish.asStateFlow()
 
+    /**
+     * **Si hay sesion, y nada mas.** Es lo unico que la Activity necesita saber para
+     * decidir si la sesion sustituye a la pantalla entera.
+     *
+     * Existe aparte de [state] por el motivo mas importante de todo este fichero: la
+     * Activity colecta esto **siempre**, en la home y en cualquier otra pantalla. Antes
+     * colectaba [state], que empieza por un `tickerFlow` de un segundo, asi que el
+     * launcher despertaba el hilo principal una vez por segundo —para siempre, tambien
+     * con la pantalla de inicio quieta y sin ninguna sesion— para recomponer un reloj
+     * que solo cambia cada minuto. Ademas arrastraba el receptor de bateria (ver
+     * [state]).
+     *
+     * Este flujo solo emite cuando la sesion empieza o termina, que son un punado de
+     * veces al dia.
+     */
+    val active: StateFlow<ActiveSession?> = sessionManager.activeSession
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(STOP_TIMEOUT_MILLIS),
+            initialValue = null,
+        )
+
+    /**
+     * La duracion elegida, para la pantalla de preparacion.
+     *
+     * Aparte de [state] porque preparar una sesion no necesita ni cronometro ni bateria:
+     * colectando el estado completo, abrir "empezar una sesion" encendia el latido de un
+     * segundo y registraba el receptor de bateria solo para pintar cual de los cinco
+     * botones esta seleccionado.
+     */
+    val preferredDuration: StateFlow<ZenDuration> = preferences.preferredDuration
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(STOP_TIMEOUT_MILLIS),
+            initialValue = ZenDuration.Default,
+        )
+
+    /**
+     * El cronometro y la bateria, **solo mientras se mira la sesion**.
+     *
+     * Lo colecta unicamente `ActiveSessionScreen`, asi que tanto el latido de un segundo
+     * como el receptor de `ACTION_BATTERY_CHANGED` existen exactamente durante la sesion
+     * y ni un momento mas. Ese receptor es de los que mas se emiten en Android —cada
+     * cambio de nivel, de temperatura o de voltaje—, y aqui si tiene a quien informar:
+     * la sesion ensena el porcentaje.
+     */
     val state: StateFlow<SessionUiState> = combine(
         tickerFlow(ONE_SECOND_MILLIS, clock),
         sessionManager.activeSession,
         battery.observe(),
-        preferences.preferredDuration,
-        batterySaver.isEnabled,
-    ) { now, active, batteryStatus, preferred, saverEnabled ->
+    ) { now, active, batteryStatus ->
         SessionUiState(
             nowMillis = now,
             active = active,
             progress = active?.let { sessionManager.progressNow(it) },
             battery = batteryStatus,
-            preferredDuration = preferred,
-            batterySaverEnabled = saverEnabled,
-            batterySaverCapability = batterySaver.capability,
         )
     }.stateIn(
         scope = viewModelScope,

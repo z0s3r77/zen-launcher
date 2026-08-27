@@ -101,6 +101,16 @@ import java.util.Locale
 @Composable
 fun HomeScreen(
     state: HomeUiState,
+    /**
+     * La hora, **como lambda y no como valor**.
+     *
+     * Es lo unico de esta pantalla que cambia sin que el usuario haga nada, y cambia cada
+     * minuto. Pasandola como `Long` dentro de `HomeUiState`, el cambio de minuto
+     * invalidaba `HomeScreen` entera y con ella el cuerpo, la retícula y cada celda.
+     * Como lambda, la lectura del estado ocurre dentro de [HomeClock] y [HomeHeader], que
+     * son los dos unicos ambitos que se recomponen al pasar el minuto.
+     */
+    nowMillis: () -> Long,
     usageReading: UsageReading,
     /**
      * El tiempo llega aparte del estado de la home, igual que la lectura de uso: su
@@ -179,16 +189,13 @@ fun HomeScreen(
         // anadir una fila. Aparece solo si la aplicacion del tiempo del telefono lo esta
         // publicando —lo que no tiene nada detras no se pinta—, asi que en un telefono
         // sin ella la franja queda exactamente como estaba.
-        val face = UsageMood.face(usageReading)
-        ZenHeaderStrip(
-            left = ZenDateFormats.date(state.nowMillis, locale),
-            right = face.glyph,
-            // `:)` es texto, pero no es texto que se pueda leer en voz alta.
-            rightDescription = stringResource(usageFaceDescription(face)),
-            onRightClick = onOpenUsage,
-            secondary = weather?.let { weatherGlyph(it) },
-            secondaryDescription = weather?.let { weatherDescription(it) },
-            onSecondaryClick = onOpenWeather,
+        HomeHeader(
+            nowMillis = nowMillis,
+            usageReading = usageReading,
+            weather = weather,
+            onOpenUsage = onOpenUsage,
+            onOpenWeather = onOpenWeather,
+            locale = locale,
         )
 
         // El menu ocupa la pantalla entera, no un hueco dentro de la home: al abrirlo se
@@ -215,7 +222,8 @@ fun HomeScreen(
             ) {
                 if (open) {
                     MenuBody(
-                        state = state,
+                        restrictedCount = state.restrictedCount,
+                        notificationTotal = state.notificationTotal,
                         usageReading = usageReading,
                         onStartSession = onStartSession,
                         onOpenScanner = onOpenScanner,
@@ -229,6 +237,7 @@ fun HomeScreen(
                 } else {
                     HomeBody(
                         state = state,
+                        nowMillis = nowMillis,
                         usageReading = usageReading,
                         onLaunchApp = onLaunchApp,
                         onMoveApp = onMoveApp,
@@ -258,10 +267,57 @@ fun HomeScreen(
     }
 }
 
+/**
+ * La franja de cabecera, en su propio ambito de recomposicion.
+ *
+ * Lee la hora aqui dentro para que el cambio de minuto no salga de esta funcion: la
+ * fecha que sale casi siempre es la misma cadena, asi que `ZenHeaderStrip` —que recibe
+ * `String`— se salta la recomposicion sola.
+ */
+@Composable
+private fun HomeHeader(
+    nowMillis: () -> Long,
+    usageReading: UsageReading,
+    weather: WeatherReading?,
+    onOpenUsage: () -> Unit,
+    onOpenWeather: () -> Unit,
+    locale: Locale,
+) {
+    val face = UsageMood.face(usageReading)
+    ZenHeaderStrip(
+        left = ZenDateFormats.date(nowMillis(), locale),
+        right = face.glyph,
+        // `:)` es texto, pero no es texto que se pueda leer en voz alta.
+        rightDescription = stringResource(usageFaceDescription(face)),
+        onRightClick = onOpenUsage,
+        secondary = weather?.let { weatherGlyph(it) },
+        secondaryDescription = weather?.let { weatherDescription(it) },
+        onSecondaryClick = onOpenWeather,
+    )
+}
+
+/**
+ * El reloj, en su propio ambito de recomposicion.
+ *
+ * Es la unica cosa de la pantalla de inicio que cambia sola, y es exactamente por eso
+ * que esta aislada en una funcion: la lectura del estado ocurre aqui, asi que al pasar
+ * el minuto se recompone este `Text` y nada mas. Antes el minuto arrastraba el cuerpo
+ * entero de la home.
+ */
+@Composable
+private fun HomeClock(nowMillis: () -> Long) {
+    Text(
+        text = ZenDateFormats.time(nowMillis()),
+        style = ZenTextStyles.Clock,
+        color = ZenColors.Foreground,
+    )
+}
+
 /** La cara de siempre: reloj, estado del dispositivo y las aplicaciones. */
 @Composable
 private fun ColumnScope.HomeBody(
     state: HomeUiState,
+    nowMillis: () -> Long,
     usageReading: UsageReading,
     onLaunchApp: (InstalledApp) -> Unit,
     onMoveApp: (from: Int, to: Int) -> Unit,
@@ -286,11 +342,7 @@ private fun ColumnScope.HomeBody(
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.Top,
     ) {
-        Text(
-            text = ZenDateFormats.time(state.nowMillis),
-            style = ZenTextStyles.Clock,
-            color = ZenColors.Foreground,
-        )
+        HomeClock(nowMillis)
         // Las acciones con boton propio, apiladas donde cae el pulgar al mirar la
         // hora: arrancar una sesion, respirar un minuto y leer la portada del dia.
         // Ninguna abre una aplicacion ajena; son las cosas que Zen sabe hacer por si
@@ -472,10 +524,16 @@ private fun ColumnScope.HomeBody(
     // con un peso revienta la medida.
 }
 
-/** La otra cara: solo las acciones de administracion. */
+/**
+ * La otra cara: solo las acciones de administracion.
+ *
+ * Recibe las dos cifras sueltas y no el `HomeUiState` entero: asi un cambio en la
+ * retícula o en el reproductor —que el menu no pinta— no lo recompone.
+ */
 @Composable
 private fun ColumnScope.MenuBody(
-    state: HomeUiState,
+    restrictedCount: Int,
+    notificationTotal: Int,
     usageReading: UsageReading,
     onStartSession: () -> Unit,
     onOpenScanner: () -> Unit,
@@ -492,8 +550,8 @@ private fun ColumnScope.MenuBody(
     Spacer(Modifier.height(ZenSpacing.Small))
 
     HomeActions(
-        restrictedCount = state.restrictedCount,
-        notificationTotal = state.notificationTotal,
+        restrictedCount = restrictedCount,
+        notificationTotal = notificationTotal,
         usageReading = usageReading,
         onOpenNotifications = { onOpenNotifications(null) },
         onExitZen = onExitZen,

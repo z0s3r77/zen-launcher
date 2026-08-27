@@ -36,11 +36,11 @@ class HomeMenuBackTest {
             ZenTheme {
                 HomeScreen(
                     state = HomeUiState(
-                        nowMillis = 1_700_000_000_000,
                         homeApps = listOf(
                             InstalledApp("com.phone", "Teléfono", "com.phone/.Main"),
                         ),
                     ),
+                    nowMillis = { 1_700_000_000_000 },
                     usageReading = UsageReading(
                         level = UsageLevel.CALMA,
                         screenMillis = 0L,

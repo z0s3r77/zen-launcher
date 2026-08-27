@@ -69,7 +69,7 @@ class HomeAppsViewModel(
         } else {
             selectable
                 .filter { it.matches(currentQuery) }
-                .sortedBy { it.sortKey }
+                .sortedWith(compareBy(String.CASE_INSENSITIVE_ORDER) { it.label })
                 .map { CandidateAppRow(app = it, chosen = it.packageName in chosenPackages) }
         }
 

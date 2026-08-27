@@ -5,8 +5,6 @@ import android.content.Context
 import android.content.Intent
 import android.util.Log
 import com.zenlauncher.zen.ZenApplication
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeout
 
@@ -24,7 +22,9 @@ class SessionEndReceiver : BroadcastReceiver() {
         val container = (context.applicationContext as? ZenApplication)?.container ?: return
         val pending = goAsync()
 
-        CoroutineScope(Dispatchers.Default).launch {
+        // El scope del proceso, no uno nuevo por difusion: construir un `CoroutineScope`
+        // en cada `onReceive` deja un `SupervisorJob` que nadie cancela ni reutiliza.
+        container.appScope.launch {
             try {
                 // Un BroadcastReceiver dispone de unos 10 s; se corta antes para no
                 // provocar un ANR si el almacenamiento va lento.

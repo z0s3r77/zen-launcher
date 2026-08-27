@@ -24,6 +24,7 @@ import com.zenlauncher.zen.domain.repository.SessionRepository
 import com.zenlauncher.zen.domain.session.SessionAlarmScheduler
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
@@ -47,9 +48,21 @@ class FakeZenClock(
 class FakeBatteryReader(
     var status: BatteryStatus = BatteryStatus(percent = 84, charging = false),
 ) : BatteryReader {
+
+    /**
+     * Cuantas veces alguien se ha puesto a observar la bateria.
+     *
+     * Lo mira `SessionViewModelTest`: observar de verdad registra un
+     * `BroadcastReceiver` de `ACTION_BATTERY_CHANGED`, que es de los broadcasts que mas
+     * emite Android, y no puede estar activo con la pantalla de inicio quieta.
+     */
+    var observers = 0
+        private set
+
     override fun current(): BatteryStatus = status
 
-    override fun observe(): Flow<BatteryStatus> = MutableStateFlow(status)
+    override fun observe(): Flow<BatteryStatus> =
+        MutableStateFlow(status).onStart { observers++ }
 }
 
 /**
@@ -326,7 +339,7 @@ class FakeInstalledAppsRepository(
         return true
     }
 
-    override fun launchPackage(packageName: String): Boolean {
+    override suspend fun launchPackage(packageName: String): Boolean {
         val app = state.value.firstOrNull { it.packageName == packageName } ?: return false
         launched += app
         return true

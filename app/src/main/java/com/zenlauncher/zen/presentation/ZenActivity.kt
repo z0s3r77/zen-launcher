@@ -26,7 +26,13 @@ import androidx.compose.runtime.withFrameNanos
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
@@ -70,6 +76,20 @@ import com.zenlauncher.zen.system.toInsetsTypeMask
  */
 class ZenActivity : ComponentActivity() {
 
+    /**
+     * Cuantas veces se ha pulsado Inicio con Zen ya delante.
+     *
+     * Con `launchMode="singleTask"` y `CATEGORY_HOME`, el gesto de Inicio no arranca
+     * nada: entrega un intent nuevo a esta Activity, que ya esta viva. Sin atenderlo,
+     * quien estaba en Notas o en el lector se quedaba ahi —pulsar Inicio no llevaba a la
+     * pantalla de inicio, que es lo primero que se espera de un launcher—.
+     *
+     * Es un contador y no un booleano porque hay que poder distinguir dos pulsaciones
+     * seguidas: con un booleano, la segunda no cambiaria el estado y `LaunchedEffect` no
+     * volveria a dispararse.
+     */
+    private val homePresses = MutableStateFlow(0)
+
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
@@ -90,11 +110,32 @@ class ZenActivity : ComponentActivity() {
                         notifications = container.postedNotifications,
                         usage = container.usage,
                         memory = container.memory,
+                        homePresses = homePresses,
+                        onFirstFrame = ::releaseWindowBackground,
                         onSessionActiveChanged = ::applyLockTask,
                     )
                 }
             }
         }
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        // Solo el gesto de Inicio, no cualquier intent que llegue a la Activity.
+        if (intent.hasCategory(Intent.CATEGORY_HOME)) homePresses.value++
+    }
+
+    /**
+     * Suelta el fondo de la ventana en cuanto hay algo pintado.
+     *
+     * `Theme.Zen` pone un `windowBackground` opaco para que el arranque no ensene un
+     * destello claro, y `ZenScreen` pinta **otro** fondo opaco encima: son dos capas a
+     * pantalla completa dibujandose en cada fotograma. La primera solo hace falta hasta
+     * que existe la segunda, asi que en cuanto Compose entrega el primer fotograma se
+     * quita y el sobredibujado desaparece.
+     */
+    private fun releaseWindowBackground() {
+        window.setBackgroundDrawable(null)
     }
 
     /**
@@ -175,6 +216,8 @@ private fun ZenRoot(
     notifications: NotificationsRepository,
     usage: UsageRepository,
     memory: LauncherMemory,
+    homePresses: StateFlow<Int>,
+    onFirstFrame: () -> Unit,
     onSessionActiveChanged: (Boolean) -> LockTaskState,
 ) {
     val context = LocalContext.current
@@ -185,7 +228,12 @@ private fun ZenRoot(
     val usageViewModel: UsageViewModel = viewModel(factory = factory)
     val weatherViewModel: WeatherViewModel = viewModel(factory = factory)
 
-    val sessionState by sessionViewModel.state.collectAsStateWithLifecycle()
+    // **Solo si hay sesion**, no el estado completo. El estado completo empieza por un
+    // `tickerFlow` de un segundo y arrastra el receptor de bateria, y esto se colecta en
+    // todas las pantallas: colectarlo aqui hacia que la pantalla de inicio quieta
+    // despertase el hilo principal una vez por segundo, para siempre. Ver
+    // [SessionViewModel.active].
+    val active = sessionViewModel.active.collectAsStateWithLifecycle().value
     val finished by sessionViewModel.finished.collectAsStateWithLifecycle()
     val confirming by sessionViewModel.confirmingFinish.collectAsStateWithLifecycle()
     val distraction by usageViewModel.distraction.collectAsStateWithLifecycle()
@@ -197,10 +245,16 @@ private fun ZenRoot(
     // sin pantalla de inicio.
     var routeAfterDistraction by remember { mutableStateOf<String?>(null) }
 
-    var isDefaultLauncher by remember { mutableStateOf(context.holdsHomeRole()) }
-    var doubleTapLockEnabled by remember { mutableStateOf(screenLocker.canLock()) }
+    // Las tres arrancan en false y las rellena el primer ON_RESUME, que llega
+    // inmediatamente despues de la primera composicion. Leerlas aqui costaba tres
+    // llamadas bloqueantes al sistema **antes del primer fotograma de la pantalla de
+    // inicio**, que es justo lo que el usuario esta esperando. Las tres se leen solo en
+    // Ajustes, a varios toques de distancia: para cuando alguien puede verlas ya son
+    // ciertas.
+    var isDefaultLauncher by remember { mutableStateOf(false) }
+    var doubleTapLockEnabled by remember { mutableStateOf(false) }
     var lockTaskState by remember { mutableStateOf(LockTaskState.NONE) }
-    var nowPlayingEnabled by remember { mutableStateOf(media.hasMetadataAccess()) }
+    var nowPlayingEnabled by remember { mutableStateOf(false) }
 
     val roleLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.StartActivityForResult(),
@@ -216,10 +270,31 @@ private fun ZenRoot(
 
     // Soltar lo que se leyo para arrancar, con la pantalla de inicio ya dibujada. Antes
     // del primer fotograma solo retrasaria lo que el usuario esta esperando; ver
-    // [LauncherMemory].
+    // [LauncherMemory]. El fondo de ventana se suelta en el mismo momento y por la misma
+    // razon: hasta aqui hacia falta, a partir de aqui solo es una capa opaca de mas.
     LaunchedEffect(Unit) {
         withFrameNanos { }
         memory.releaseAfterFirstFrame()
+        onFirstFrame()
+    }
+
+    // Pulsar Inicio con Zen ya delante vuelve a la pantalla de inicio. Ver
+    // [ZenActivity.homePresses]: sin esto, el gesto de Inicio no hacia nada y quien
+    // estaba en Notas o en el lector se quedaba donde estaba.
+    val homePress by homePresses.collectAsStateWithLifecycle()
+    LaunchedEffect(homePress) {
+        // El valor inicial no es una pulsacion: solo se navega a partir de la primera.
+        if (homePress == 0) return@LaunchedEffect
+        // Con una sesion, un resumen o un aviso en pantalla, el NavHost **no esta
+        // compuesto** y su grafo puede no existir todavia: tocarlo ahi lanza excepcion y
+        // una excepcion aqui deja el telefono sin pantalla de inicio. Es la misma
+        // precaucion que toma la navegacion diferida del aviso de distraccion, unas
+        // lineas mas arriba. Ademas no habria nada que hacer: esas tres pantallas ya
+        // sustituyen a la home entera.
+        if (navController.currentDestination == null) return@LaunchedEffect
+        // `popBackStack` y no `navigate`: la home es la raiz del grafo, asi que navegar
+        // apilaria una segunda encima de la que ya esta debajo.
+        navController.popBackStack(route = ZenRoute.HOME, inclusive = false)
     }
 
     // La navegacion diferida del aviso: se espera a que el NavHost vuelva a componerse.
@@ -232,7 +307,15 @@ private fun ZenRoot(
 
     // Al volver a primer plano hay que cerrar la sesion si venció mientras no se veia,
     // y refrescar si Zen sigue siendo el launcher por defecto.
+    //
+    // Las tres concesiones se releen **fuera del hilo principal**. Las tres son llamadas
+    // bloqueantes al sistema —`RoleManager`, `DevicePolicyManager` y una consulta a
+    // `Settings.Secure`, que es un proveedor de contenido— y las tres estaban en el
+    // camino critico entre "vuelvo de WhatsApp" y "veo la hora", cincuenta veces al dia.
+    // Cambian una vez cada varios meses: pueden llegar un fotograma tarde, y lo que se
+    // pinta mientras tanto es el valor anterior, que es el correcto casi siempre.
     val lifecycleOwner = LocalLifecycleOwner.current
+    val scope = rememberCoroutineScope()
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
             if (event == Lifecycle.Event.ON_RESUME) {
@@ -245,19 +328,22 @@ private fun ZenRoot(
                 // nunca por su cuenta. Solo sale a la red si toca (ver `WeatherRefresh`)
                 // y solo si hay una ciudad elegida.
                 weatherViewModel.refresh()
-                isDefaultLauncher = context.holdsHomeRole()
-                // El administrador puede haberse revocado desde Ajustes de Android.
-                doubleTapLockEnabled = screenLocker.canLock()
-                // Y el acceso a notificaciones se concede o se quita en esa misma
-                // pantalla del sistema, de la que se vuelve por aqui.
-                nowPlayingEnabled = media.hasMetadataAccess()
+                scope.launch {
+                    val home = withContext(Dispatchers.IO) { context.holdsHomeRole() }
+                    // El administrador puede haberse revocado desde Ajustes de Android.
+                    val canLock = withContext(Dispatchers.IO) { screenLocker.canLock() }
+                    // Y el acceso a notificaciones se concede o se quita en esa misma
+                    // pantalla del sistema, de la que se vuelve por aqui.
+                    val metadata = withContext(Dispatchers.IO) { media.hasMetadataAccess() }
+                    isDefaultLauncher = home
+                    doubleTapLockEnabled = canLock
+                    nowPlayingEnabled = metadata
+                }
             }
         }
         lifecycleOwner.lifecycle.addObserver(observer)
         onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
     }
-
-    val active = sessionState.active
 
     // El anclado sigue a la sesion, no al ciclo de vida: entra al empezar y se suelta
     // al terminar, venga el final del usuario o de la alarma.
@@ -268,6 +354,11 @@ private fun ZenRoot(
         active != null -> {
             // Durante la sesion, atras no lleva a ninguna parte: no hay a donde volver.
             BackHandler(enabled = true) { /* deliberadamente vacio */ }
+
+            // El cronometro y la bateria se colectan **aqui dentro**, dentro de la rama
+            // que solo existe con sesion: asi el latido de un segundo y el receptor de
+            // `ACTION_BATTERY_CHANGED` viven exactamente lo que dura la sesion.
+            val sessionState by sessionViewModel.state.collectAsStateWithLifecycle()
 
             ActiveSessionScreen(
                 state = sessionState,

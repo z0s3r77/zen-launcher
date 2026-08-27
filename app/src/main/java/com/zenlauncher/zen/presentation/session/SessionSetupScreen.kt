@@ -29,9 +29,14 @@ import com.zenlauncher.zen.presentation.components.ZenSearchField
 import com.zenlauncher.zen.presentation.theme.ZenColors
 import com.zenlauncher.zen.presentation.theme.ZenSpacing
 
+/**
+ * Recibe la duracion suelta y no el `SessionUiState` entero: es el unico dato que esta
+ * pantalla lee, y pidiendo el estado completo se encendian el cronometro de un segundo y
+ * el receptor de bateria solo para saber cual de los cinco botones va marcado.
+ */
 @Composable
 fun SessionSetupScreen(
-    state: SessionUiState,
+    preferredDuration: ZenDuration,
     onStart: (ZenDuration) -> Unit,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
@@ -53,7 +58,7 @@ fun SessionSetupScreen(
         Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
             ZenHairline()
             ZenDuration.Presets.forEach { preset ->
-                val selected = preset.wholeMinutes == state.preferredDuration.wholeMinutes
+                val selected = preset.wholeMinutes == preferredDuration.wholeMinutes
                 ZenListRow(
                     label = pluralStringResource(
                         R.plurals.setup_minutes,

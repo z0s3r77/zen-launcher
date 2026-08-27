@@ -19,17 +19,27 @@ import com.zenlauncher.zen.domain.repository.PreferencesRepository
 import com.zenlauncher.zen.domain.session.ZenSessionManager
 import com.zenlauncher.zen.presentation.util.ONE_MINUTE_MILLIS
 import com.zenlauncher.zen.presentation.util.tickerFlow
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
+/**
+ * El estado de la pantalla de inicio **sin la hora**.
+ *
+ * `nowMillis` vivia aqui y era caro: cambia cada minuto, y como este objeto se le pasa
+ * entero a `HomeScreen`, el cambio de minuto invalidaba el cuerpo completo de la home
+ * —incluida cada celda de la retícula, con su `"%02d".format` y sus lambdas nuevas—
+ * para redibujar cuatro cifras. Ahora la hora viaja en [HomeViewModel.nowMillis], su
+ * propio flujo, y lo unico que se invalida al cambiar el minuto es el `Text` del reloj.
+ */
 data class HomeUiState(
-    val nowMillis: Long = 0L,
     val activeSession: ActiveSession? = null,
     /** Lo que se ve en la reticula: los favoritos del usuario o, si no eligio, las esenciales. */
     val homeApps: List<InstalledApp> = emptyList(),
@@ -99,9 +109,21 @@ class HomeViewModel(
     /**
      * El reloj de la home late una vez por minuto, no una vez por segundo: los
      * segundos no se muestran, asi que despertar mas seria gasto puro de bateria.
+     *
+     * Va aparte de [state] a proposito. Mezclado en el `combine`, cada minuto salia un
+     * `HomeUiState` nuevo y la pantalla entera se recomponia para cambiar el minuto de
+     * la hora. Separado, el latido solo invalida a quien lee la hora.
      */
+    val nowMillis: StateFlow<Long> = tickerFlow(ONE_MINUTE_MILLIS, clock)
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(STOP_TIMEOUT_MILLIS),
+            // Sincrono para el primer fotograma: la hora es lo mas grande de la
+            // pantalla y no puede aparecer un instante despues que el resto.
+            initialValue = clock.wallTimeMillis(),
+        )
+
     val state: StateFlow<HomeUiState> = combine(
-        tickerFlow(ONE_MINUTE_MILLIS, clock),
         preferences.activeSession,
         installedApps.observeInstalledApps(),
         combine(
@@ -117,7 +139,7 @@ class HomeViewModel(
             ),
             ::Triple,
         ),
-    ) { now, active, apps, (favourites, restricted, deviceState) ->
+    ) { active, apps, (favourites, restricted, deviceState) ->
         val (audioPlaying, nowPlaying, posted) = deviceState
         // Una restringida no puede aparecer en el inicio por ninguna via: ni elegida a
         // mano, ni colandose como esencial.
@@ -135,7 +157,6 @@ class HomeViewModel(
         )
 
         HomeUiState(
-            nowMillis = now,
             activeSession = active,
             homeApps = chosen.ifEmpty { essentials },
             usingEssentials = chosen.isEmpty() && essentials.isNotEmpty(),
@@ -149,17 +170,17 @@ class HomeViewModel(
             notificationCounts = countable.filterKeys { it in byPackage },
             notificationTotal = countable.values.sum(),
         )
-    }.stateIn(
-        scope = viewModelScope,
-        started = SharingStarted.WhileSubscribed(STOP_TIMEOUT_MILLIS),
-        // El reloj se lee de forma sincrona para el primer fotograma: el flujo tarda en
-        // emitir porque el combine espera a la lista de aplicaciones, y sin esto la hora
-        // —lo mas grande de la pantalla— aparecia un instante despues.
-        initialValue = HomeUiState(
-            nowMillis = clock.wallTimeMillis(),
-            mediaPlaying = mediaPlaying.value,
-        ),
-    )
+    }
+        // Fuera del hilo principal. Aqui se filtran las restringidas sobre la lista
+        // entera de aplicaciones instaladas, se construye un mapa por paquete, se
+        // resuelven las esenciales y se cuentan los avisos: con `stateIn(viewModelScope)`
+        // a secas todo eso corria en `Main.immediate`, o sea en el hilo que dibuja.
+        .flowOn(Dispatchers.Default)
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(STOP_TIMEOUT_MILLIS),
+            initialValue = HomeUiState(mediaPlaying = mediaPlaying.value),
+        )
 
     /**
      * Se llama al volver a primer plano. Si el tiempo vencio mientras la app no estaba
@@ -201,7 +222,7 @@ class HomeViewModel(
      */
     fun openNowPlaying() {
         val packageName = state.value.nowPlaying?.packageName ?: return
-        installedApps.launchPackage(packageName)
+        viewModelScope.launch { installedApps.launchPackage(packageName) }
     }
 
     /**

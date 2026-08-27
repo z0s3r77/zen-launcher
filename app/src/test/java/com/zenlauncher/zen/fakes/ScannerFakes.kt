@@ -111,7 +111,15 @@ class FakeTextRecognizer(
     var closed = false
         private set
 
+    /**
+     * Imita a ML Kit: leer con el reconocedor cerrado **lanza**, no devuelve null.
+     *
+     * Es lo que hace `TextRecognizer.process` de verdad —`IllegalStateException`
+     * sincrona— y es justo lo que tumbaba el launcher la segunda vez que se abria el
+     * escaner. Un fake que devolviese null aqui dejaria pasar esa regresion.
+     */
     override suspend fun read(imagePath: String): RecognizedText? {
+        check(!closed) { "El reconocedor esta cerrado" }
         reads++
         return result
     }

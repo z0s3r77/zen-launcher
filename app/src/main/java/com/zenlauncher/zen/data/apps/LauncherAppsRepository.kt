@@ -89,12 +89,16 @@ class LauncherAppsRepository(
         false
     }
 
-    override fun launchPackage(packageName: String): Boolean {
+    override suspend fun launchPackage(packageName: String): Boolean = withContext(io) {
         // getActivityList acotado al paquete: evita recorrer todas las aplicaciones solo
         // para encontrar el componente principal de una.
+        //
+        // `suspend` y fuera del hilo principal porque `getActivityList` cruza IPC y toca
+        // disco: se llama al tocar la ficha del reproductor, y hacerlo en el hilo que
+        // dibuja mete un binder bloqueante justo entre el dedo y la respuesta.
         val activity = launcherApps?.getActivityList(packageName, user)?.firstOrNull()
-            ?: return false
-        return try {
+            ?: return@withContext false
+        try {
             launcherApps.startMainActivity(activity.componentName, user, null, null)
             true
         } catch (error: Exception) {
@@ -119,8 +123,13 @@ class LauncherAppsRepository(
             // Puede haber varias actividades lanzables por paquete; en un launcher de
             // texto una entrada por aplicacion es lo esperable.
             .distinctBy { it.packageName }
-            .sortedBy { it.sortKey }
             .toList()
+            // `sortedWith(CASE_INSENSITIVE_ORDER)` y no `sortedBy { it.sortKey }`:
+            // `sortedBy` evalua el selector **en cada comparacion**, y `sortKey` era
+            // `label.lowercase()`, o sea un `String` nuevo por comparacion. Con siglo y
+            // medio de aplicaciones son mas de mil cadenas por lectura, todas para
+            // tirarlas. El comparador del sistema no reserva nada.
+            .sortedWith(compareBy(String.CASE_INSENSITIVE_ORDER) { it.label })
     }
 
     private companion object {

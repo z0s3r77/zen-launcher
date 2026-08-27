@@ -23,7 +23,11 @@ interface InstalledAppsRepository {
      * Abre una aplicacion de la que solo se conoce el paquete, no el componente: es el
      * caso del reproductor que publica la sesion de medios.
      *
+     * `suspend` porque resolver el componente cruza IPC y toca disco: se llama al tocar
+     * la ficha del reproductor o un aviso, y hacerlo en el hilo principal mete un binder
+     * bloqueante entre el dedo y la respuesta.
+     *
      * @return false si el paquete no tiene ninguna actividad lanzable.
      */
-    fun launchPackage(packageName: String): Boolean
+    suspend fun launchPackage(packageName: String): Boolean
 }

@@ -31,7 +31,7 @@ private class CountingApps(apps: List<InstalledApp>) : InstalledAppsRepository {
 
     override suspend fun launchableApps(): List<InstalledApp> = state.value
     override fun launch(app: InstalledApp): Boolean = true
-    override fun launchPackage(packageName: String): Boolean = true
+    override suspend fun launchPackage(packageName: String): Boolean = true
 }
 
 @OptIn(ExperimentalCoroutinesApi::class)

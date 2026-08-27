@@ -11,6 +11,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
 
 data class NotificationsUiState(
     val groups: List<NotificationGroup> = emptyList(),
@@ -51,7 +52,7 @@ class NotificationsViewModel(
      * que no se pidio.
      */
     fun open(packageName: String) {
-        installedApps.launchPackage(packageName)
+        viewModelScope.launch { installedApps.launchPackage(packageName) }
     }
 
     private companion object {

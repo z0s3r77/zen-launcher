@@ -61,12 +61,16 @@ import kotlinx.coroutines.withContext
  * al abrir el libro. Un flujo que reemite veinte mil parrafos cada vez que se guarda el
  * progreso seria releer el libro entero cada pocos segundos mientras se lee.
  */
-class SqliteBookRepository(
-    context: Context,
+class SqliteBookRepository internal constructor(
+    private val helper: ZenDatabaseHelper,
     private val io: CoroutineDispatcher = Dispatchers.IO,
 ) : BookRepository {
 
-    private val helper = ZenDatabaseHelper(context.applicationContext)
+    /** Ver [com.zenlauncher.zen.data.db.SqliteSessionRepository]: un solo ayudante por fichero. */
+    constructor(
+        context: Context,
+        io: CoroutineDispatcher = Dispatchers.IO,
+    ) : this(ZenDatabaseHelper(context.applicationContext), io)
 
     private val invalidations = MutableSharedFlow<Unit>(extraBufferCapacity = 8)
 

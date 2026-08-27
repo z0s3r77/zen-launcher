@@ -10,6 +10,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -107,6 +108,11 @@ fun ZenNavHost(
             val usage by usageViewModel.state.collectAsStateWithLifecycle()
             val weather by weatherViewModel.state.collectAsStateWithLifecycle()
 
+            // La hora entra como lambda: leerla aqui recompondria toda la pantalla de
+            // inicio una vez por minuto. Ver [HomeScreen].
+            val clock = homeViewModel.nowMillis.collectAsStateWithLifecycle()
+            val nowMillis = remember(clock) { { clock.value } }
+
             // La pantalla de inicio es el final del camino: aqui "atras" no lleva a
             // ninguna parte, y dejarlo activo cerraria el launcher. Con la barra de
             // gestos oculta, esto ademas deja el gesto sin efecto en vez de invisible.
@@ -114,6 +120,7 @@ fun ZenNavHost(
 
             HomeScreen(
                 state = state,
+                nowMillis = nowMillis,
                 usageReading = usage.reading,
                 onLaunchApp = homeViewModel::launch,
                 onMoveApp = homeViewModel::moveHomeApp,
@@ -454,10 +461,13 @@ fun ZenNavHost(
         }
 
         composable(ZenRoute.SESSION_SETUP) {
-            val state by sessionViewModel.state.collectAsStateWithLifecycle()
+            // Solo la duracion: colectando el estado completo, abrir esta pantalla
+            // encendia el latido de un segundo y el receptor de bateria.
+            val preferredDuration by sessionViewModel.preferredDuration
+                .collectAsStateWithLifecycle()
 
             SessionSetupScreen(
-                state = state,
+                preferredDuration = preferredDuration,
                 onStart = onStartSession,
                 onBack = navController::popBackStack,
             )

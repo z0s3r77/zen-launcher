@@ -3,6 +3,7 @@ package com.zenlauncher.zen.domain
 import com.zenlauncher.zen.domain.usage.Compulsion
 import com.zenlauncher.zen.domain.usage.CompulsionKind
 import com.zenlauncher.zen.domain.usage.DistractionPolicy
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -66,5 +67,29 @@ class DistractionPolicyTest {
         val futuro = ahora + minutos(300)
 
         assertTrue(DistractionPolicy.shouldInterrupt(compulsion, futuro, ahora, sessionActive = false))
+    }
+
+    /**
+     * `couldInterrupt` es lo que se pregunta **antes** de leer dos horas de eventos de
+     * uso. Tiene que decidir exactamente igual que `shouldInterrupt` con una conducta
+     * detectada: si divergen, la consulta cara se saltaria casos que si habia que avisar.
+     */
+    @Test
+    fun `couldInterrupt decide lo mismo que shouldInterrupt con conducta`() {
+        val casos = listOf(
+            Triple(null, false, "sin marca previa"),
+            Triple(ahora - minutos(10), false, "dentro de la espera"),
+            Triple(ahora - minutos(DistractionPolicy.COOLDOWN_MINUTES + 1), false, "pasada la espera"),
+            Triple(ahora + minutos(300), false, "marca en el futuro"),
+            Triple(null, true, "durante una sesion"),
+        )
+
+        casos.forEach { (marca, enSesion, caso) ->
+            assertEquals(
+                caso,
+                DistractionPolicy.shouldInterrupt(compulsion, marca, ahora, enSesion),
+                DistractionPolicy.couldInterrupt(marca, ahora, enSesion),
+            )
+        }
     }
 }
