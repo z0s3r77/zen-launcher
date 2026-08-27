@@ -45,7 +45,8 @@ fun HomeAppsScreen(
     ZenScreen(modifier = modifier, onSwipeBack = onBack) {
         ZenHeaderStrip(
             left = stringResource(R.string.home_apps_title),
-            right = "%02d / %02d".format(state.chosenCount, HomeAppsUiState.MAX_HOME_APPS),
+            // Solo la cuenta: no hay contra que contarla desde que la home se desplaza.
+            right = "%02d".format(state.chosenCount),
             onBack = onBack,
         )
 
@@ -103,10 +104,8 @@ fun HomeAppsScreen(
 
             items(state.candidates, key = { "candidata:${it.app.packageName}" }) { row ->
                 // Si ya esta puesta se ve, pero no se puede volver a anadir: repetirla
-                // en la reticula seria un hueco perdido. Y con el inicio lleno, las
-                // demas se apagan en lugar de desaparecer, para que se entienda que
-                // existen y lo que falta es sitio.
-                val addable = !row.chosen && state.canChooseMore
+                // en la reticula seria un hueco perdido.
+                val addable = !row.chosen
                 ZenListRow(
                     label = row.app.label,
                     labelColor = when {
@@ -132,16 +131,7 @@ fun HomeAppsScreen(
                     !state.searching ->
                         stringResource(R.string.home_apps_search_hint)
 
-                    !state.canChooseMore ->
-                        stringResource(
-                            R.string.home_apps_full,
-                            HomeAppsUiState.MAX_HOME_APPS,
-                        )
-
-                    else -> stringResource(
-                        R.string.home_apps_notice,
-                        HomeAppsUiState.MAX_HOME_APPS,
-                    )
+                    else -> stringResource(R.string.home_apps_notice)
                 }
                 MonoLabel(text = notice, color = ZenColors.Dim, maxLines = 3)
                 Spacer(Modifier.height(ZenSpacing.Medium))

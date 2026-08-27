@@ -21,6 +21,8 @@ import com.zenlauncher.zen.fakes.appNotification
 import com.zenlauncher.zen.fakes.installedApp
 import com.zenlauncher.zen.presentation.home.HomeViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -104,6 +106,100 @@ class HomeViewModelTest {
             assertEquals(listOf("Notas", "Teléfono"), loaded.homeApps.map { it.label })
             assertFalse(loaded.usingEssentials)
         }
+    }
+
+    @Test
+    fun `mover una aplicacion escribe el nuevo orden en los favoritos`() = runTest {
+        val preferences = FakePreferencesRepository()
+        preferences.setFavourites(listOf("com.phone", "com.notes", "com.instagram.android"))
+        val viewModel = viewModel(preferences)
+
+        viewModel.state.test {
+            awaitItem()
+            awaitItem()
+
+            viewModel.moveHomeApp(from = 0, to = 2)
+            // `runCurrent` y no `advanceUntilIdle`: el reloj de la home late para
+            // siempre, asi que adelantar hasta que no quede nada no termina nunca.
+            runCurrent()
+
+            assertEquals(
+                listOf("Notas", "Instagram", "Teléfono"),
+                awaitItem().homeApps.map { it.label },
+            )
+        }
+
+        assertEquals(
+            listOf("com.notes", "com.instagram.android", "com.phone"),
+            preferences.favouritePackages.first(),
+        )
+    }
+
+    @Test
+    fun `mover no borra una favorita restringida`() = runTest {
+        // Regresion: se reescribian los favoritos con lo que la home estaba pintando, y
+        // una restringida no se pinta. Reordenar cualquier otra la borraba, asi que al
+        // levantar la restriccion la aplicacion ya no volvia al inicio.
+        val preferences = FakePreferencesRepository(initialRestricted = setOf("com.instagram.android"))
+        preferences.setFavourites(listOf("com.phone", "com.instagram.android", "com.notes"))
+        val viewModel = viewModel(preferences)
+
+        viewModel.state.test {
+            awaitItem()
+            awaitItem()
+
+            viewModel.moveHomeApp(from = 0, to = 1)
+            runCurrent()
+            awaitItem()
+        }
+
+        assertEquals(
+            listOf("com.notes", "com.instagram.android", "com.phone"),
+            preferences.favouritePackages.first(),
+        )
+    }
+
+    @Test
+    fun `mover con las esenciales puestas convierte el orden en una eleccion`() = runTest {
+        // Sin nada elegido la home va con las esenciales, que no estan guardadas. Lo que
+        // el usuario acaba de ordenar con el dedo pasa a ser su lista.
+        val preferences = FakePreferencesRepository()
+        val viewModel = viewModel(preferences, installed = realWorldApps)
+
+        viewModel.state.test {
+            awaitItem()
+            val cargado = awaitItem()
+            assertTrue(cargado.usingEssentials)
+
+            viewModel.moveHomeApp(from = 0, to = 1)
+            runCurrent()
+            assertFalse(awaitItem().usingEssentials)
+        }
+
+        val esperado = listOf(
+            "com.whatsapp",
+            "com.google.android.googlequicksearchbox",
+            "com.google.android.dialer",
+            "com.android.settings",
+            "com.spotify.music",
+        )
+        assertEquals(esperado, preferences.favouritePackages.first())
+    }
+
+    @Test
+    fun `un movimiento que no cambia nada no escribe`() = runTest {
+        val preferences = FakePreferencesRepository()
+        val viewModel = viewModel(preferences)
+
+        viewModel.state.test {
+            awaitItem()
+            awaitItem()
+
+            viewModel.moveHomeApp(from = 1, to = 1)
+            runCurrent()
+        }
+
+        assertTrue(preferences.favouritePackages.first().isEmpty())
     }
 
     @Test

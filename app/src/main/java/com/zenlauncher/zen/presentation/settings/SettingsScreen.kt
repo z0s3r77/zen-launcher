@@ -11,7 +11,6 @@ import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import com.zenlauncher.zen.R
 import com.zenlauncher.zen.domain.model.ZenDuration
-import com.zenlauncher.zen.presentation.apps.HomeAppsUiState
 import com.zenlauncher.zen.presentation.components.MonoLabel
 import com.zenlauncher.zen.presentation.components.StatusMark
 import com.zenlauncher.zen.presentation.components.ZenHairline
@@ -180,12 +179,7 @@ fun SettingsScreen(
                     labelColor = ZenColors.Secondary,
                     onClick = onOpenHomeApps,
                     trailing = {
-                        MonoLabel(
-                            text = "%02d / %02d".format(
-                                state.homeAppsCount,
-                                HomeAppsUiState.MAX_HOME_APPS,
-                            ),
-                        )
+                        MonoLabel(text = "%02d".format(state.homeAppsCount))
                     },
                 )
                 ZenHairline()

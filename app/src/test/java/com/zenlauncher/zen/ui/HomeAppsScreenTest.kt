@@ -86,10 +86,11 @@ class HomeAppsScreenTest {
             ),
         )
 
-        // El mismo numero que lleva la celda en la reticula de la home.
-        composeRule.onNodeWithText("01").assertIsDisplayed()
-        composeRule.onNodeWithText("02").assertIsDisplayed()
-        composeRule.onNodeWithText("Teléfono").assertIsDisplayed()
+        // El mismo numero que lleva la celda en la reticula de la home. Se busca junto
+        // al nombre y no suelto: desde que la cabecera enseña solo la cuenta —sin el
+        // "/ 08" del tope, que ya no existe— un "02" a secas casa tambien con ella.
+        composeRule.onNode(hasText("Notas") and hasText("01")).assertIsDisplayed()
+        composeRule.onNode(hasText("Teléfono") and hasText("02")).assertIsDisplayed()
     }
 
     @Test
@@ -138,28 +139,26 @@ class HomeAppsScreenTest {
     }
 
     @Test
-    fun `con el inicio lleno los resultados se apagan en vez de desaparecer`() {
-        // Que se entienda que la aplicacion existe y lo que falta es sitio.
-        val lleno = (1..HomeAppsUiState.MAX_HOME_APPS).map {
+    fun `con ocho puestas la novena se sigue pudiendo anadir`() {
+        // Aqui se comprobaba que con el inicio lleno los resultados se apagaban. El tope
+        // se quito al hacer que la pantalla de inicio se desplace: ya no hay "lleno", y
+        // apagar una fila sin nada detras seria una limitacion inventada.
+        val ocho = (1..8).map {
             ChosenAppRow(app("com.app$it", "App $it"), position = it - 1)
         }
         val telefono = app("com.google.android.dialer", "Teléfono")
         render(
             query = "tel",
-            chosen = lleno,
+            chosen = ocho,
             candidates = listOf(CandidateAppRow(telefono, chosen = false)),
         )
 
-        // Con el inicio lleno hay ocho filas por encima: el resultado y el aviso viven
-        // debajo del pliegue de la lista.
+        // Con ocho filas por encima, el resultado vive debajo del pliegue de la lista.
         val lista = composeRule.onNode(hasScrollAction())
         lista.performScrollToNode(hasText("Teléfono"))
-        composeRule.onNodeWithText("Teléfono").assertIsDisplayed().assertHasNoClickAction()
+        composeRule.onNodeWithText("Teléfono").assertIsDisplayed().performClick()
 
-        lista.performScrollToNode(hasText("YA HAY 8. QUITA UNA PARA PODER AÑADIR OTRA"))
-        composeRule.onNodeWithText("YA HAY 8. QUITA UNA PARA PODER AÑADIR OTRA")
-            .assertIsDisplayed()
-        assertEquals(emptyList<InstalledApp>(), added)
+        assertEquals(listOf(telefono), added)
     }
 
     @Test

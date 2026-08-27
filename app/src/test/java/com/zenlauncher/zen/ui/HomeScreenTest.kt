@@ -4,12 +4,16 @@ import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertHasClickAction
 import androidx.compose.ui.test.assertHasNoClickAction
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsNotDisplayed
+import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onRoot
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.swipeRight
 import androidx.compose.ui.test.swipeUp
@@ -55,6 +59,7 @@ class HomeScreenTest {
     private var restrictedOpened = 0
     private var statsOpened = 0
     private val launched = mutableListOf<InstalledApp>()
+    private val moves = mutableListOf<Pair<Int, Int>>()
     private val mediaCommands = mutableListOf<String>()
     private val notificationsOpened = mutableListOf<String?>()
     private var exits = 0
@@ -86,6 +91,7 @@ class HomeScreenTest {
                     ),
                     usageReading = usageReading,
                     onLaunchApp = { launched += it },
+                    onMoveApp = { from, to -> moves += from to to },
                     onOpenDrawer = { drawerOpened++ },
                     onOpenHomeApps = { homeAppsOpened++ },
                     onOpenNotes = { notesOpened++ },
@@ -132,6 +138,9 @@ class HomeScreenTest {
         app("com.google.android.gm", "Gmail"),
         app("com.imaginbank.app", "imagin"),
     )
+
+    /** Mas de las que caben en la pantalla: para eso existe el desplazamiento. */
+    private fun veinteApps() = (1..20).map { app("com.app$it", "App $it") }
 
     private fun app(pkg: String, label: String) =
         InstalledApp(packageName = pkg, label = label, componentName = "$pkg/.Main")
@@ -292,6 +301,126 @@ class HomeScreenTest {
     }
 
     @Test
+    fun `mantener pulsada una celda y arrastrarla la cambia de hueco`() {
+        render(homeApps = ochoApps())
+
+        val origen = composeRule.onNodeWithText("Google").getUnclippedBoundsInRoot()
+        val destino = composeRule.onNodeWithText("Teléfono").getUnclippedBoundsInRoot()
+        val salto = with(composeRule.density) { (destino.top - origen.top).toPx() }
+
+        composeRule.onNodeWithText("Google").performTouchInput {
+            down(center)
+            // Por encima del tiempo de pulsacion larga: sin mantener, un arrastre sobre
+            // la reticula no puede reordenar nada.
+            advanceEventTime(1_000)
+            moveTo(center + Offset(0f, salto))
+            advanceEventTime(50)
+            up()
+        }
+        composeRule.waitForIdle()
+
+        // Del hueco 01 al 03: una fila mas abajo, misma columna.
+        assertEquals(listOf(0 to 2), moves)
+    }
+
+    @Test
+    fun `un arrastre sin mantener pulsado no mueve nada`() {
+        // La reticula esta llena de celdas que se tocan cincuenta veces al dia: un roce
+        // al sacar el telefono del bolsillo no puede reordenar la pantalla de inicio.
+        render(homeApps = ochoApps())
+
+        val origen = composeRule.onNodeWithText("Google").getUnclippedBoundsInRoot()
+        val destino = composeRule.onNodeWithText("Teléfono").getUnclippedBoundsInRoot()
+        val salto = with(composeRule.density) { (destino.top - origen.top).toPx() }
+
+        composeRule.onNodeWithText("Google").performTouchInput {
+            down(center)
+            moveTo(center + Offset(0f, salto))
+            up()
+        }
+        composeRule.waitForIdle()
+
+        assertTrue(moves.isEmpty())
+    }
+
+    @Test
+    fun `soltar en el mismo hueco no reordena`() {
+        render(homeApps = ochoApps())
+
+        composeRule.onNodeWithText("Google").performTouchInput {
+            down(center)
+            advanceEventTime(1_000)
+            up()
+        }
+        composeRule.waitForIdle()
+
+        assertTrue(moves.isEmpty())
+    }
+
+    @Test
+    fun `arrastrar no abre la aplicacion al soltar`() {
+        // Regresion: la celda seguia siendo un `clickable`, asi que levantar el dedo
+        // despues de mover abria la aplicacion que se acababa de colocar.
+        render(homeApps = ochoApps())
+
+        composeRule.onNodeWithText("Google").performTouchInput {
+            down(center)
+            advanceEventTime(1_000)
+            up()
+        }
+        composeRule.waitForIdle()
+
+        assertTrue(launched.isEmpty())
+    }
+
+    @Test
+    fun `las aplicaciones se pueden mover sin arrastrar`() {
+        // Arrastrar no existe para quien navega con un lector de pantalla: el mismo
+        // movimiento tiene que estar disponible como accion con nombre.
+        render(homeApps = ochoApps())
+
+        val acciones = composeRule.onNodeWithText("Teléfono")
+            .fetchSemanticsNode()
+            .config[SemanticsActions.CustomActions]
+
+        assertEquals(
+            listOf("Mover al hueco anterior", "Mover al hueco siguiente"),
+            acciones.map { it.label },
+        )
+
+        acciones.first { it.label == "Mover al hueco anterior" }.action()
+
+        assertEquals(listOf(2 to 1), moves)
+    }
+
+    @Test
+    fun `la primera y la ultima solo se pueden mover hacia donde hay hueco`() {
+        render(homeApps = ochoApps())
+
+        val primera = composeRule.onNodeWithText("Google")
+            .fetchSemanticsNode()
+            .config[SemanticsActions.CustomActions]
+        val ultima = composeRule.onNodeWithText("imagin")
+            .fetchSemanticsNode()
+            .config[SemanticsActions.CustomActions]
+
+        assertEquals(listOf("Mover al hueco siguiente"), primera.map { it.label })
+        assertEquals(listOf("Mover al hueco anterior"), ultima.map { it.label })
+    }
+
+    @Test
+    fun `notas y lectura no se mueven`() {
+        // Son las dos unicas celdas que no son aplicaciones y su sitio es una decision
+        // de producto: ni se arrastran ni sirven de destino.
+        render(homeApps = ochoApps())
+
+        listOf("Notas", "Lectura").forEach { celda ->
+            val nodo = composeRule.onNodeWithText(celda).fetchSemanticsNode()
+            assertTrue(SemanticsActions.CustomActions !in nodo.config)
+        }
+    }
+
+    @Test
     fun `la bateria y las conexiones ya no se repiten en la home`() {
         // Se quitaron al dejar de ocultar la barra de estado: decian exactamente lo
         // mismo que el sistema dibuja dos centimetros mas arriba.
@@ -316,9 +445,10 @@ class HomeScreenTest {
     }
 
     @Test
-    fun `la home no se desplaza, todo cabe en la pantalla`() {
-        // Regresion: la home era una columna con verticalScroll y el menu quedaba bajo
-        // el pliegue. Una pantalla de inicio que se arrastra deja de ser un sitio fijo.
+    fun `con las que caben no hay nada que desplazar`() {
+        // La home se desplaza desde que la reticula no tiene tope, pero con ocho
+        // aplicaciones —lo que cabia antes— la pantalla se comporta igual que siempre:
+        // todo a la vista sin tocar nada.
         render(homeApps = ochoApps())
 
         // La hora formateada depende de la zona horaria del entorno; se comprueba la
@@ -334,9 +464,9 @@ class HomeScreenTest {
 
     @Test
     fun `con el mando sonando y la reticula llena sigue cabiendo todo`() {
-        // El peor caso de alto: ocho aplicaciones, el mando del reproductor abierto y la
-        // fila que se sumo a la home. Si algo se saliera, la home no se desplaza para
-        // ir a buscarlo.
+        // El peor caso de alto de siempre: ocho aplicaciones y el mando del reproductor
+        // abierto. Sigue cabiendo sin desplazarse; que ahora se pueda desplazar no es
+        // excusa para empezar a dejar cosas bajo el pliegue.
         composeRule.mainClock.autoAdvance = false
         render(homeApps = ochoApps(), mediaPlaying = true)
 
@@ -345,6 +475,42 @@ class HomeScreenTest {
         composeRule.onNodeWithText("Todas las aplicaciones").assertIsDisplayed()
         composeRule.onNodeWithText("Notas").assertIsDisplayed()
         composeRule.onNodeWithText("Menú").assertIsDisplayed()
+    }
+
+    @Test
+    fun `con mas aplicaciones de las que caben la home se desplaza`() {
+        // El tope de ocho se quito, asi que la reticula puede pasar del alto de la
+        // pantalla y hay que poder ir a buscar lo de abajo.
+        render(homeApps = veinteApps())
+
+        composeRule.onNodeWithText("App 20").assertIsNotDisplayed()
+        composeRule.onNodeWithText("App 20").performScrollTo().assertIsDisplayed()
+    }
+
+    @Test
+    fun `el menu y la cabecera no se van con el desplazamiento`() {
+        // Regresion que hundio al `verticalScroll` anterior: la home entera se
+        // desplazaba y la fila "Menu" —la unica salida hacia restringidas, ajustes y el
+        // resto— se iba bajo el pliegue. Ahora el area desplazable vive **entre** las
+        // dos, asi que no hay sitio al que llegar donde falten.
+        render(homeApps = veinteApps())
+
+        composeRule.onNodeWithText("App 20").performScrollTo()
+
+        composeRule.onNodeWithText("Menú").assertIsDisplayed()
+        // La franja de cabecera: la cara del dia sigue arriba. Se comprueba con el glifo
+        // y no con la fecha porque la fecha formateada depende de la zona horaria del
+        // entorno donde corra el test.
+        composeRule.onNodeWithText(":)").assertIsDisplayed()
+    }
+
+    @Test
+    fun `desplazarse no hace falta para llegar a la lista completa con pocas apps`() {
+        // La fila "Todas las aplicaciones" va dentro del area desplazable, no anclada:
+        // con la reticula corta tiene que seguir viendose sin tocar nada.
+        render(homeApps = listOf(app("com.phone", "Teléfono")))
+
+        composeRule.onNodeWithText("Todas las aplicaciones").assertIsDisplayed()
     }
 
     @Test

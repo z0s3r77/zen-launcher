@@ -14,7 +14,7 @@ import kotlinx.coroutines.flow.first
  *
  * Se **anaden** a lo que ya hubiera elegido el usuario en lugar de sustituirlo: quien
  * venia de una version anterior con favoritos guardados los conserva, y las esenciales
- * rellenan los huecos que queden hasta el maximo.
+ * rellenan los huecos que queden.
  *
  * La marca de sembrado es la unica guarda: si manana el usuario los borra todos, esto no
  * vuelve a entrar. Una lista vacia puede ser una decision.
@@ -32,9 +32,11 @@ class SeedEssentialFavourites(
         val visible = restrictions.visibleApps(installedApps.launchableApps(), restricted)
         val current = preferences.favouritePackages.first()
 
+        // Sin `take`: la pantalla de inicio ya no tiene tope, asi que sembrar no puede
+        // recortar lo que el usuario tuviera elegido. Las esenciales son ocho como mucho
+        // por construccion.
         val seeded = (current + EssentialApps.resolve(visible).map { it.packageName })
             .distinct()
-            .take(EssentialApps.MAX_HOME_APPS)
 
         // Escribir la lista solo si cambia algo: sembrar no deberia provocar una
         // reescritura de DataStore en cada arranque de una instalacion ya poblada.

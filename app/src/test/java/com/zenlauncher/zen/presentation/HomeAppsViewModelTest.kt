@@ -126,8 +126,11 @@ class HomeAppsViewModelTest {
     }
 
     @Test
-    fun `con el inicio lleno no se anade nada mas`() = runTest {
-        val muchas = (1..HomeAppsUiState.MAX_HOME_APPS).map { installedApp("com.app$it", "App $it") }
+    fun `con ocho puestas todavia se puede anadir la novena`() = runTest {
+        // Aqui se comprobaba lo contrario: con ocho, anadir no hacia nada. El tope se
+        // quito al hacer que la pantalla de inicio se desplace, porque lo que lo
+        // justificaba era que la novena no se pudiera alcanzar.
+        val muchas = (1..8).map { installedApp("com.app$it", "App $it") }
         val preferences = FakePreferencesRepository()
         preferences.setFavourites(muchas.map { it.packageName })
         val model = HomeAppsViewModel(
@@ -138,12 +141,14 @@ class HomeAppsViewModelTest {
 
         model.state.test {
             awaitItem()
-            val state = awaitItem()
-            assertFalse(state.canChooseMore)
+            assertEquals(8, awaitItem().chosenCount)
 
             model.onQueryChange("notas")
             model.add(awaitItem().candidates.single().app)
-            expectNoEvents()
+
+            val conNueve = awaitItem()
+            assertEquals(9, conNueve.chosenCount)
+            assertEquals("com.example.notes", conNueve.chosen.last().app.packageName)
         }
     }
 

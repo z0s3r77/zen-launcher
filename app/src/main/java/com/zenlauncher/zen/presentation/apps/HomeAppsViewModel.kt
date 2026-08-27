@@ -3,7 +3,6 @@ package com.zenlauncher.zen.presentation.apps
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.zenlauncher.zen.domain.apps.AppRestrictionManager
-import com.zenlauncher.zen.domain.apps.EssentialApps
 import com.zenlauncher.zen.domain.model.InstalledApp
 import com.zenlauncher.zen.domain.repository.InstalledAppsRepository
 import com.zenlauncher.zen.domain.repository.PreferencesRepository
@@ -28,15 +27,8 @@ data class HomeAppsUiState(
 ) {
     val chosenCount: Int get() = chosen.size
 
-    val canChooseMore: Boolean get() = chosenCount < MAX_HOME_APPS
-
     /** Si hay busqueda en curso: sin ella no se ensena ninguna candidata. */
     val searching: Boolean get() = query.isNotBlank()
-
-    companion object {
-        /** El tope lo fija el dominio: esta pantalla y el sembrado tienen que contar igual. */
-        const val MAX_HOME_APPS = EssentialApps.MAX_HOME_APPS
-    }
 }
 
 /**
@@ -105,15 +97,18 @@ class HomeAppsViewModel(
     }
 
     /**
-     * Anade al final. Si ya esta puesta, o no queda hueco, no hace nada: la fila que lo
-     * llama ya lo dice, y aqui se comprueba otra vez porque el estado puede haber
-     * cambiado entre el toque y la escritura.
+     * Anade al final. Si ya esta puesta no hace nada: la fila que lo llama ya lo dice, y
+     * aqui se comprueba otra vez porque el estado puede haber cambiado entre el toque y
+     * la escritura.
+     *
+     * Ya no hay tope. Lo hubo —ocho— mientras la pantalla de inicio no se desplazaba:
+     * la novena aplicacion existia pero no habia forma de llegar a ella. Desde que la
+     * home se desplaza, cortar en ocho seria una limitacion sin nada detras.
      */
     fun add(app: InstalledApp) {
         viewModelScope.launch {
             val current = chosenPackages()
             if (app.packageName in current) return@launch
-            if (current.size >= HomeAppsUiState.MAX_HOME_APPS) return@launch
             preferences.setFavourites(current + app.packageName)
         }
     }

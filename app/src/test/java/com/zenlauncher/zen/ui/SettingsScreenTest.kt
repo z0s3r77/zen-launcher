@@ -143,7 +143,7 @@ class SettingsScreenTest {
         render(isDefaultLauncher = true, homeAppsCount = 3)
 
         composeRule
-            .onNode(hasText("Aplicaciones en el Inicio") and hasText("03 / 08"))
+            .onNode(hasText("Aplicaciones en el Inicio") and hasText("03"))
             .performScrollTo()
             .assertHasClickAction()
             .performClick()

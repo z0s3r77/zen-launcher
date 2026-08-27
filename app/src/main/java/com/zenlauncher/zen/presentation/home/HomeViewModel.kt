@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.zenlauncher.zen.core.ZenClock
 import com.zenlauncher.zen.domain.apps.AppRestrictionManager
 import com.zenlauncher.zen.domain.apps.EssentialApps
+import com.zenlauncher.zen.domain.apps.HomeAppOrder
 import com.zenlauncher.zen.domain.apps.SeedEssentialFavourites
 import com.zenlauncher.zen.domain.media.MediaTransport
 import com.zenlauncher.zen.domain.media.NowPlaying
@@ -23,6 +24,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
@@ -171,6 +173,26 @@ class HomeViewModel(
 
     fun launch(app: InstalledApp) {
         installedApps.launch(app)
+    }
+
+    /**
+     * Cambia de sitio una aplicacion de la reticula: la del hueco [from] pasa al [to].
+     *
+     * Se escribe sobre los favoritos guardados y no sobre lo que se ve, que puede ser
+     * menos: una favorita restringida o desinstalada no se pinta pero sigue guardada, y
+     * reescribir con lo visible la borraria para siempre. El reparto lo hace
+     * [HomeAppOrder.reorder], que es puro.
+     *
+     * Si el movimiento no cambia nada no se escribe: reordenar no deberia provocar una
+     * escritura de DataStore por cada arrastre que acaba donde empezo.
+     */
+    fun moveHomeApp(from: Int, to: Int) {
+        viewModelScope.launch {
+            val stored = preferences.favouritePackages.first()
+            val visible = state.value.homeApps.map { it.packageName }
+            val reordered = HomeAppOrder.reorder(stored, visible, from, to)
+            if (reordered != stored) preferences.setFavourites(reordered)
+        }
     }
 
     /**

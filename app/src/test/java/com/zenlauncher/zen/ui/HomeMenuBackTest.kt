@@ -49,6 +49,7 @@ class HomeMenuBackTest {
                         measured = true,
                     ),
                     onLaunchApp = {},
+                    onMoveApp = { _, _ -> },
                     onOpenDrawer = {},
                     onOpenHomeApps = {},
                     onOpenNotes = {},

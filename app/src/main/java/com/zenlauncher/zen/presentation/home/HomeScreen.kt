@@ -3,6 +3,8 @@ package com.zenlauncher.zen.presentation.home
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
@@ -24,7 +26,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import com.zenlauncher.zen.R
-import com.zenlauncher.zen.domain.apps.EssentialApps
 import com.zenlauncher.zen.domain.model.InstalledApp
 import com.zenlauncher.zen.domain.usage.UsageMood
 import com.zenlauncher.zen.domain.usage.UsageReading
@@ -62,15 +63,26 @@ import java.util.Locale
  * Al abrir el menu, la pantalla **se sustituye entera**: solo queda la franja de
  * cabecera con la fecha y el estado de la sesion.
  *
- * **No se desplaza.** Una pantalla de inicio que se arrastra deja de ser un sitio fijo
- * y se convierte en una lista que explorar, que es justo lo que Zen evita: el reloj
- * tiene que estar siempre en el mismo pixel. El hueco sobrante se reparte con un peso,
- * asi que el menu queda anclado abajo en cualquier alto de pantalla.
+ * **Se desplaza, pero solo por el medio.** La reticula ya no tiene tope de aplicaciones,
+ * asi que el cuerpo de la pantalla puede pasar del alto disponible y hay que poder ir a
+ * buscarlo. Lo que se desplaza es **unicamente** lo que hay entre la franja de cabecera y
+ * la fila del menu: esas dos estan fuera del area desplazable y no se mueven nunca.
  *
- * A cambio, con `fontScale` muy alto el contenido se recorta en lugar de poder
- * arrastrarse. Se compensa acotando lo que puede crecer: la reticula nunca pasa de
- * [EssentialApps.MAX_HOME_APPS] y el menu sustituye a la pantalla en lugar de sumarse
- * a ella.
+ * Esto no es volver atras. La home fue una columna con `verticalScroll` **entera**, y el
+ * fallo de aquello no era desplazarse: era que la fila "Menu" —la unica salida hacia
+ * restringidas, ajustes y el resto— se iba bajo el pliegue y desaparecia de la pantalla
+ * de inicio. Anclada fuera del desplazamiento, ese fallo no puede volver: se llegue donde
+ * se llegue arrastrando, la cabecera esta arriba y el menu abajo. Ver
+ * `HomeScreenTest.el menu y la cabecera no se van con el desplazamiento`.
+ *
+ * Lo que si se pierde es que el reloj este siempre en el mismo pixel, y era una regla de
+ * este launcher: al desplazarse se va. Se paga a cambio de poder tener en el inicio mas
+ * aplicaciones de las que caben, que es lo que se pidio. Con las que caben —ocho y las
+ * dos celdas que no son aplicaciones— no hay nada que desplazar y la pantalla se
+ * comporta exactamente igual que antes.
+ *
+ * De regalo, `fontScale` muy alto deja de recortar el contenido: antes lo que no cabia
+ * no existia, y ahora se llega arrastrando.
  *
  * **Sin gestos propios de navegacion.** Aqui no hay ningun deslizamiento que abra una
  * pantalla: las tres filas fijas —lista completa, notas y menu— son lo que se toca. El
@@ -78,6 +90,13 @@ import java.util.Locale
  * tambien encima de la reticula y con el menu abierto, y lo que el usuario veia era una
  * pantalla que se le iba sola. En una pantalla de inicio, lo que abre algo tiene que
  * verse.
+ *
+ * El unico arrastre que la home reconoce **no abre nada: coloca**. Manteniendo pulsada
+ * una celda de la reticula se la lleva a otro hueco, y el orden que sale es el mismo que
+ * numera "Elegir aplicaciones". Cumple la regla anterior por donde importa —no hay
+ * ninguna puerta que se abra sin tocarla— y la pulsacion larga lo mantiene lejos de
+ * cualquier roce. Notas y Lectura quedan fuera: son las dos celdas que no son
+ * aplicaciones y su sitio no lo decide el usuario.
  */
 @Composable
 fun HomeScreen(
@@ -91,6 +110,8 @@ fun HomeScreen(
      */
     weather: WeatherReading?,
     onLaunchApp: (InstalledApp) -> Unit,
+    /** Reordenar la reticula: la celda del hueco `from` pasa al hueco `to`. */
+    onMoveApp: (from: Int, to: Int) -> Unit,
     onOpenDrawer: () -> Unit,
     onOpenHomeApps: () -> Unit,
     onOpenNotes: () -> Unit,
@@ -116,6 +137,12 @@ fun HomeScreen(
     // `rememberSaveable`: el menu se cierra al salir de la aplicacion, pero no al girar
     // el telefono ni al volver de otra pantalla.
     var menuOpen by rememberSaveable { mutableStateOf(false) }
+
+    // Uno por cara y creados aqui, no dentro del `AnimatedContent`: el contenido de cada
+    // cara se descarta al cambiar, asi que un estado creado ahi dentro volveria arriba
+    // cada vez que se abre y se cierra el menu.
+    val homeScroll = rememberScrollState()
+    val menuScroll = rememberScrollState()
 
     // Con el menu abierto, atras cierra en vez de no hacer nada. En la home el gesto se
     // traga a proposito —no hay a donde volver—, pero aqui si lo hay: el menu es la
@@ -176,7 +203,16 @@ fun HomeScreen(
             modifier = Modifier.weight(1f).fillMaxWidth(),
             label = "home-menu",
         ) { open ->
-            Column(Modifier.fillMaxSize()) {
+            // El desplazamiento vive **aqui dentro**, entre la cabecera y la fila del
+            // menu, que quedan fuera. `fillMaxSize` antes de `verticalScroll` para que el
+            // area ocupe lo que queda de pantalla en vez de medirse por su contenido: sin
+            // eso funciona mientras todo quepa, y el dia que no quepa el recorte deja de
+            // caer donde deberia.
+            Column(
+                Modifier
+                    .fillMaxSize()
+                    .verticalScroll(if (open) menuScroll else homeScroll),
+            ) {
                 if (open) {
                     MenuBody(
                         state = state,
@@ -195,6 +231,7 @@ fun HomeScreen(
                         state = state,
                         usageReading = usageReading,
                         onLaunchApp = onLaunchApp,
+                        onMoveApp = onMoveApp,
                         onOpenDrawer = onOpenDrawer,
                         onOpenHomeApps = onOpenHomeApps,
                         onOpenNotes = onOpenNotes,
@@ -227,6 +264,7 @@ private fun ColumnScope.HomeBody(
     state: HomeUiState,
     usageReading: UsageReading,
     onLaunchApp: (InstalledApp) -> Unit,
+    onMoveApp: (from: Int, to: Int) -> Unit,
     onOpenDrawer: () -> Unit,
     onOpenHomeApps: () -> Unit,
     onOpenNotes: () -> Unit,
@@ -365,11 +403,14 @@ private fun ColumnScope.HomeBody(
     //
     // Lectura entra al lado de Notas y por la misma razon: es algo que se abre a diario
     // y se usa como una aplicacion, no una opcion de administracion. Las dos juntas
-    // ocupan **una fila entera** de reticula, asi que con un numero par de aplicaciones
-    // la home crece una fila (60dp) respecto a tener solo Notas. Es el limite: la
-    // reticula no puede pasar de [EssentialApps.MAX_HOME_APPS] y **estas dos celdas son
-    // las unicas que no son aplicaciones**. La siguiente idea de "algo siempre visible"
-    // vuelve a ser el menu.
+    // ocupan **una fila entera** de reticula.
+    //
+    // Y **siguen siendo las dos unicas celdas que no son aplicaciones**, aunque la
+    // reticula ya no tenga tope. Lo que las limitaba no era el alto de la pantalla —eso
+    // lo resuelve el desplazamiento— sino que van al final, detras de lo que el usuario
+    // eligio: una tercera empujaria a las dos primeras mas lejos del pulgar sin que
+    // nadie lo haya pedido. La siguiente idea de "algo siempre visible" vuelve a ser el
+    // menu.
     ZenAppGrid(
         tiles = state.homeApps.map { app ->
             HomeTile(
@@ -385,6 +426,16 @@ private fun ColumnScope.HomeBody(
             label = stringResource(R.string.home_reading),
             onClick = onOpenReading,
         ),
+        // Solo las aplicaciones se mueven, y solo entre ellas: Notas y Lectura van al
+        // final porque son las dos unicas celdas que no son aplicaciones, y donde estan
+        // es una decision de producto —ver la cabecera de esta pantalla—, no un hueco
+        // que el usuario pueda ocupar con WhatsApp.
+        //
+        // Es el unico gesto que la reticula reconoce, y exige mantener pulsado: sin eso,
+        // un roce al sacar el telefono del bolsillo reordenaria la pantalla de inicio.
+        // Sigue sin haber ningun deslizamiento que **abra** nada; esto no abre, coloca.
+        movable = state.homeApps.size,
+        onMove = onMoveApp,
     )
     ZenHairline()
 
@@ -415,10 +466,10 @@ private fun ColumnScope.HomeBody(
         ZenHairline()
     }
 
-    // Todo el aire sobrante va aqui: la fila del menu queda anclada abajo y la parte de
-    // arriba no se mueve.
-    Spacer(Modifier.weight(1f).fillMaxWidth())
-
+    // Aqui iba un espaciador con peso que empujaba la fila del menu hasta abajo. Ya no
+    // hace falta —el menu esta anclado fuera del area desplazable— y ademas no podria
+    // estar: dentro de un `verticalScroll` el alto disponible es infinito y repartirlo
+    // con un peso revienta la medida.
 }
 
 /** La otra cara: solo las acciones de administracion. */
@@ -453,8 +504,6 @@ private fun ColumnScope.MenuBody(
         onOpenUsage = onOpenUsage,
         onOpenSettings = onOpenSettings,
     )
-
-    Spacer(Modifier.weight(1f).fillMaxWidth())
 }
 
 /**

@@ -116,6 +116,7 @@ fun ZenNavHost(
                 state = state,
                 usageReading = usage.reading,
                 onLaunchApp = homeViewModel::launch,
+                onMoveApp = homeViewModel::moveHomeApp,
                 onOpenDrawer = { navController.navigate(ZenRoute.DRAWER) },
                 onOpenHomeApps = { navController.navigate(ZenRoute.HOME_APPS) },
                 onOpenNotes = { navController.navigate(ZenRoute.NOTES) },

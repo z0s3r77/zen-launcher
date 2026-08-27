@@ -73,13 +73,20 @@ class SeedEssentialFavouritesTest {
     }
 
     @Test
-    fun `nunca se pasa del tope de la pantalla de inicio`() = runTest {
+    fun `sembrar no recorta lo que el usuario ya tenia elegido`() = runTest {
+        // Aqui se comprobaba que nunca se pasara de ocho. Ese tope se quito al hacer que
+        // la pantalla de inicio se desplace, y lo que hay que proteger es lo contrario:
+        // sembrar no puede tirar nada de lo que ya estaba escrito.
         val preferences = FakePreferencesRepository(initialSeeded = false)
-        preferences.setFavourites(List(EssentialApps.MAX_HOME_APPS) { "com.relleno.$it" })
+        val relleno = List(8) { "com.relleno.$it" }
+        preferences.setFavourites(relleno)
 
         seeder(preferences)()
 
-        assertEquals(EssentialApps.MAX_HOME_APPS, preferences.favouritePackages.first().size)
+        val seeded = preferences.favouritePackages.first()
+        assertEquals(relleno, seeded.take(relleno.size))
+        assertTrue("com.whatsapp" in seeded)
+        assertEquals(seeded.distinct(), seeded)
     }
 
     @Test

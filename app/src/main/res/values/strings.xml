@@ -204,11 +204,16 @@
     <string name="home_apps_search_placeholder">Escribe el nombre de una aplicación</string>
     <string name="home_apps_search_hint">ESCRIBE PARA BUSCARLA. NO SE LISTAN TODAS: ELEGIR ENTRE DOSCIENTAS NO ES ELEGIR</string>
     <string name="home_apps_no_results">NINGUNA APLICACIÓN SE LLAMA ASÍ</string>
-    <string name="home_apps_full">YA HAY %1$d. QUITA UNA PARA PODER AÑADIR OTRA</string>
     <string name="home_apps_action_add">Añadir al inicio</string>
     <string name="home_apps_action_remove">Quitar del inicio</string>
     <string name="home_apps_state_chosen">QUITAR</string>
-    <string name="home_apps_notice">MÁXIMO %1$d. LAS RESTRINGIDAS NO PUEDEN ELEGIRSE</string>
+    <string name="home_apps_notice">LAS RESTRINGIDAS NO PUEDEN ELEGIRSE</string>
+
+    <!-- Reordenar la retícula manteniendo pulsada una celda. Las dos acciones existen
+         porque arrastrar no es un gesto disponible con un lector de pantalla. -->
+    <string name="home_grid_move_back">Mover al hueco anterior</string>
+    <string name="home_grid_move_forward">Mover al hueco siguiente</string>
+    <string name="home_grid_moving">Moviendo al hueco %1$d</string>
 
     <!-- Bloqueo de pantalla -->
     <string name="device_admin_explanation">Permite que un doble toque en una zona vacía apague la pantalla, sin usar el botón físico. Zen no pide ninguna otra capacidad de administrador.</string>

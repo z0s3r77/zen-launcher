@@ -16,14 +16,13 @@ import com.zenlauncher.zen.domain.model.InstalledApp
  * aplicacion distinta segun la ROM: el marcador de un Pixel no es el de un Nothing ni
  * el de un Samsung. Se coge el primero que este instalado y se descarta el hueco si no
  * hay ninguno; nunca se inventa una entrada que no se pueda abrir.
+ *
+ * Aqui vivio `MAX_HOME_APPS = 8`, el tope de aplicaciones de la pantalla de inicio. Se
+ * quito al hacer que la home se desplace: el tope existia porque lo que no cabia en la
+ * pantalla no se podia alcanzar, y ahora si. Estos ocho huecos siguen siendo lo que se
+ * siembra por defecto, no un maximo.
  */
 object EssentialApps {
-
-    /**
-     * Tope de aplicaciones en la pantalla de inicio. Una pantalla de inicio que crece
-     * deja de ser una pantalla de inicio; coincide con el numero de huecos esenciales.
-     */
-    const val MAX_HOME_APPS = 8
 
     /**
      * Todos los paquetes que pueden ocupar un hueco esencial, esten instalados o no.

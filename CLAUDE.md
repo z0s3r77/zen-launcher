@@ -30,14 +30,38 @@ tocar cualquier cosa, dar por supuesto lo siguiente:
   Zen lo compensa reconociendo el arrastre por su cuenta (`EdgeBackPolicy`, conectado en
   `ZenScreen` vía `onSwipeBack`), así que se vuelve al primer intento; la barra de gestos
   sigue asomando un instante y eso no tiene arreglo sin Device Owner. Cada pantalla nueva lleva `onBack` y lo pasa a
-  `ZenHeaderStrip`. **Volver desde un lateral es el único gesto propio de Zen**, y no
-  habrá más: la lista de aplicaciones se abría deslizando hacia arriba y se retiró
-  —saltaba desde cualquier punto de la home, también con el menú abierto—; lo que abre
-  algo se toca y se ve. La home se traga el gesto de atrás —no hay a dónde volver—, **salvo
-  con el menú abierto**, donde lo cierra: es la única cara de la home de la que se sale.
-- **La home no se desplaza y no crece.** Todo cabe de una vez y el reloj está siempre en
-  el mismo píxel. Lo nuevo va al menú plegado, nunca a una fila permanente más. Las tres
-  únicas filas permanentes son **Todas las aplicaciones** (bajo la retícula) y **Menú**,
+  `ZenHeaderStrip`. **Volver desde un lateral es el único gesto de navegación propio de
+  Zen**, y no habrá más: la lista de aplicaciones se abría deslizando hacia arriba y se
+  retiró —saltaba desde cualquier punto de la home, también con el menú abierto—; lo que
+  abre algo se toca y se ve. La home se traga el gesto de atrás —no hay a dónde volver—,
+  **salvo con el menú abierto**, donde lo cierra: es la única cara de la home de la que
+  se sale.
+- **El otro arrastre que existe no abre nada: coloca.** Manteniendo pulsada una celda de
+  la retícula se la lleva a otro hueco (`HomeAppOrder`, puro; el gesto vive en
+  `ZenAppGrid`). No contradice lo anterior porque no hay ninguna puerta que se abra sin
+  tocarla, y la **pulsación larga no se negocia**: la retícula está llena de celdas que
+  se tocan cincuenta veces al día y un arrastre directo reordenaría la pantalla de inicio
+  con cualquier roce. Solo se mueven las aplicaciones y solo entre ellas —Notas y Lectura
+  quedan fuera, su sitio es una decisión de producto—, el orden que sale es el mismo
+  `favouritePackages` que numera «Elegir aplicaciones», y **se escribe sobre lo guardado,
+  nunca sobre lo que se ve**: una favorita restringida no se pinta pero sigue guardada, y
+  reescribir con lo visible la borraría para siempre. Arrastrar no existe con un lector
+  de pantalla, así que cada celda lleva además dos acciones con nombre («Mover al hueco
+  anterior» y «siguiente»).
+- **La home se desplaza, pero solo por el medio.** Fue la regla contraria durante mucho
+  tiempo —«todo cabe de una vez y el reloj está siempre en el mismo píxel»— y **se rompió
+  a propósito**: la retícula ya no tiene tope de aplicaciones, así que el cuerpo puede
+  pasar del alto de la pantalla y hay que poder ir a buscarlo. Lo que se desplaza es
+  **únicamente** lo que hay entre la franja de cabecera y la fila «Menú»; esas dos viven
+  fuera del área desplazable y no se mueven nunca. Eso es lo que impide que vuelva el
+  fallo que hundió al `verticalScroll` anterior: entonces la columna entera se desplazaba
+  y «Menú» —la única salida hacia restringidas, ajustes y el resto— se iba bajo el
+  pliegue. Se paga con que el reloj deje de estar siempre en el mismo píxel. **Lo que no
+  cambia**: con las aplicaciones que caben no hay nada que desplazar y la pantalla se
+  comporta igual que siempre, así que seguir metiendo filas permanentes sigue estando mal
+  —ahora empujan en vez de recortar, que no es mejor—. Lo nuevo va al menú plegado. Las
+  tres únicas filas permanentes son **Todas las aplicaciones** (bajo la retícula) y
+  **Menú**,
   y los tres únicos botones son **ZEN**, **RESPIRA** y **NOTICIAS**, apilados a la
   derecha de la hora; el resto del alto es retícula, y lo que se sume ahí empuja algo
   fuera de la pantalla. **Tres es el tope de esa pila**: los tres marcos ya miden más de
@@ -46,11 +70,10 @@ tocar cualquier cosa, dar por supuesto lo siguiente:
   **Notas y Lectura no son filas: son celdas más de la retícula**, con su
   número, porque son cosas que se abren a diario y se usan como aplicaciones —abajo, junto
   a «Menú», se leían como opciones de administración—. Si algo nuevo tiene que estar
-  siempre visible, ese es el único sitio donde cabe, y solo si no añade una fila de
-  retícula: con un número impar de aplicaciones, la primera celda cae en el hueco que ya
-  sobraba. **Y son las dos únicas que no son aplicaciones**: juntas ocupan una fila
-  entera, así que una tercera empujaría el reloj. Fijado en `HomeScreenTest`; lo
-  siguiente vuelve a ir al menú. El menú abierto **sustituye a la pantalla entera** y
+  siempre visible, ese es el único sitio donde cabe. **Y son las dos únicas que no son
+  aplicaciones**: van al final, detrás de lo que el usuario eligió, así que una tercera
+  alejaría a las dos primeras del pulgar sin que nadie lo haya pedido. Fijado en
+  `HomeScreenTest`; lo siguiente vuelve a ir al menú. El menú abierto **sustituye a la pantalla entera** y
   deja solo la franja de cabecera: lo que se añada ahí no compite con el reloj.
 - **La cara del día vive en el slot derecho de la franja de cabecera de la home.** Ahí
   había un `SIN SESIÓN` que en esa pantalla era una **constante** —si hubiera sesión, la
@@ -214,7 +237,7 @@ tocar cualquier cosa, dar por supuesto lo siguiente:
 ## Comandos
 
 ```bash
-./gradlew testDebugUnitTest             # 926 tests JVM (incluye UI de Compose sobre Robolectric)
+./gradlew testDebugUnitTest             # 952 tests JVM (incluye UI de Compose sobre Robolectric)
 ./gradlew assembleDebug                 # APK -> app/build/outputs/apk/debug/
 ./gradlew installDebug                  # build + instalar en dispositivo conectado
 ./gradlew lint                          # informe -> app/build/reports/lint-results-*.html
@@ -234,7 +257,9 @@ Cuatro capas en un módulo, **sin framework de inyección**:
 
 ```
 core/          ZenClock (los dos relojes del sistema, inyectable)
-domain/        modelo, repositorios (interfaces), sesión, apps, batería, media,
+domain/        modelo, repositorios (interfaces), sesión, apps (EssentialApps y
+               HomeAppOrder: puras; la segunda reparte los huecos de la retícula al
+               reordenar y dice a qué hueco llega un arrastre), batería, media,
                news (NewsEdition y NewsRefresh: la segunda es pura y dice cuándo toca
                bajar otra portada; NewsRepository es la frontera),
                notifications (NotificationBadges, NotificationGrouping: puras),
@@ -295,7 +320,8 @@ presentation/  theme, components, una pantalla + ViewModel por destino
   `ZenViewModelFactory.kt` las une a los ViewModel. Añadir una dependencia significa
   tocar esos dos ficheros, no las pantallas.
 - Las decisiones se sacan a **funciones puras del dominio** para poder probarlas sin
-  Android: `LockTaskDecision`, `SystemBarsPolicy`, `EssentialApps`, `StatsCalculator`,
+  Android: `LockTaskDecision`, `SystemBarsPolicy`, `EssentialApps`, `HomeAppOrder`,
+  `StatsCalculator`,
   `SessionProgressCalculator`, `HomeRoleTarget`, `BreathingPattern`, `NewsRefresh`,
   `DoxaPortada`, `LexicalEmbedder`,
   `SemanticIndex`, `TextNormalizer`, `LinkExtractor`, `WeatherCodes`, `WeatherRefresh`,

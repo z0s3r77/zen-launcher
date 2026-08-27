@@ -26,10 +26,19 @@ Dispositivo objetivo: **Nothing Phone (2a)** con Nothing OS 4.1 / Android 16.
   quita cabeceras y folios, rehace los párrafos, detecta el índice y lo deja para leer a
   página completa, con marcas, subrayado y notas. Todo local, sin conexión y sin una sola
   librería de PDF. Ver [Lectura](#lectura).
-- **La home no se desplaza** — el reloj está siempre en el mismo píxel; el menú abierto
-  ocupa el sitio de la retícula en lugar de alargar la página. La lista completa de
-  aplicaciones se abre desde la fila **Todas las aplicaciones**, justo debajo de la
-  retícula.
+- **La home se desplaza por el medio** — pon en el inicio las aplicaciones que quieras,
+  sin tope: si no caben, la pantalla baja a buscarlas. Lo que **no** se mueve nunca es la
+  franja de arriba (fecha, tiempo y la cara del día) ni la fila **Menú** de abajo: el área
+  desplazable vive entre las dos, así que no hay ningún sitio al que llegar arrastrando
+  donde falte la salida. El menú abierto sigue ocupando el sitio de la retícula en lugar
+  de alargar la página, y la lista completa de aplicaciones se abre desde la fila **Todas
+  las aplicaciones**, justo debajo de la retícula.
+
+  Zen no se desplazó durante mucho tiempo, a propósito: una pantalla de inicio que se
+  arrastra deja de ser un sitio fijo, y el reloj estaba siempre en el mismo píxel. Se
+  cambió porque el tope de ocho aplicaciones no tenía más razón de ser que esa: lo que no
+  cabía no se podía alcanzar. Con las que caben no hay nada que desplazar y la pantalla se
+  comporta exactamente como antes.
 - **Salida propia en cada pantalla** — con las barras del sistema ocultas, el gesto de
   atrás lo intercepta Zen (el primer deslizamiento de Android saca las barras en vez de
   volver, así que la aplicación reconoce el arrastre desde el borde por su cuenta y
@@ -45,8 +54,21 @@ Dispositivo objetivo: **Nothing Phone (2a)** con Nothing OS 4.1 / Android 16.
   Esa fila estuvo escondida tras un deslizamiento hacia arriba y el gesto **se retiró**:
   se disparaba desde cualquier punto de la pantalla de inicio —también encima de la
   retícula y con el menú abierto—, así que la lista se abría en mitad de cualquier otra
-  intención. En una pantalla de inicio, lo que abre algo tiene que verse; Zen ya no tiene
-  más gesto propio que el de volver desde un lateral.
+  intención. En una pantalla de inicio, lo que abre algo tiene que verse; volver desde un
+  lateral sigue siendo el único gesto de Zen que **lleva** a alguna parte.
+- **Colocar las aplicaciones con el dedo** — mantén pulsada una celda de la retícula y
+  llévala a otro hueco. El número de la celda va diciendo dónde va a caer mientras la
+  mueves, y al soltar ese orden es el mismo que numera **Aplicaciones en el Inicio**: no
+  hay dos listas que puedan discrepar.
+
+  Hace falta **mantener pulsado**, no basta con arrastrar: son celdas que se tocan
+  cincuenta veces al día, y un arrastre a secas convertiría cualquier roce al sacar el
+  teléfono del bolsillo en una pantalla de inicio reordenada. Notas y Lectura no se
+  mueven —son las dos celdas que no son aplicaciones y su sitio no se negocia—, y una
+  aplicación restringida que tuvieras guardada en el inicio **no se pierde** al reordenar
+  el resto: sigue en su hueco esperando a que le levantes la restricción. Como arrastrar
+  no es un gesto disponible con un lector de pantalla, cada celda ofrece además las
+  acciones «Mover al hueco anterior» y «Mover al hueco siguiente».
 - **Pulso de uso y aviso de distracción** — Zen mide cuánto móvil llevas hoy (tiempo de
   pantalla y desbloqueos) y solo se pronuncia cuando hay algo que decir: el pulso
   aparece bajo el reloj a partir de USO ALTO y desaparece con el día en calma. Cuando la
@@ -138,7 +160,9 @@ Dispositivo objetivo: **Nothing Phone (2a)** con Nothing OS 4.1 / Android 16.
 - **Elegir lo que se ve en el inicio** — pantalla propia (`Ajustes Zen → Aplicaciones en
   el Inicio`, o `Elegir aplicaciones` en una home todavía sin favoritas): arriba lo que
   ya está puesto, numerado igual que la retícula y tocando se quita; abajo un buscador
-  que **no lista nada hasta que se escribe**. Colgaba de Ajustes como una lista con las
+  que **no lista nada hasta que se escribe**. No hay máximo: pon las que quieras y la home
+  se desplaza para que quepan. El orden se cambia desde la propia home, arrastrando la
+  celda; aquí se elige qué hay, no dónde está. Colgaba de Ajustes como una lista con las
   doscientas aplicaciones del teléfono, y elegir entre doscientas no es elegir.
 - **Movimiento, solo cuando algo cambia** — abrir una pantalla, abrir el menú o que
   aparezca el mando del reproductor se anima 180 ms; volver, 120. Nada corre en bucle ni
@@ -1234,11 +1258,13 @@ Cambiar de v0.1 a v0.2 debería ser sustituir las implementaciones registradas e
 ./gradlew testDebugUnitTest
 ```
 
-926 tests en la JVM, sin dispositivo. Cubren el cálculo del tiempo restante (incluidos
+952 tests en la JVM, sin dispositivo. Cubren el cálculo del tiempo restante (incluidos
 reinicio y manipulación del reloj), sesión completada y abandonada, duración registrada,
 idempotencia del cierre, cálculo de batería consumida —con sus casos no fiables—,
 persistencia en SQLite y en DataStore, selección de aplicaciones, la resolución de las
 aplicaciones esenciales por candidatos de paquete, el sembrado de la pantalla de inicio,
+el reparto de huecos al reordenar la retícula —a qué hueco llega un arrastre y qué pasa
+con una favorita guardada que no se ve—,
 la lectura del acceso al oyente de notificaciones, qué cuenta como aviso pendiente y
 cómo se agrupan, la política de barras del sistema, el patrón de respiración guiada, la agregación de
 varios días y las observaciones sobre el patrón —con sus topes y sus silencios—, el plegado de la
