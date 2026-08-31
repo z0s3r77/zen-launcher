@@ -14,6 +14,7 @@ import androidx.datastore.preferences.core.stringSetPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import com.zenlauncher.zen.domain.model.ActiveSession
 import com.zenlauncher.zen.domain.model.ZenDuration
+import com.zenlauncher.zen.domain.model.ZenThemeChoice
 import com.zenlauncher.zen.data.news.NewsJson
 import com.zenlauncher.zen.domain.news.NewsEdition
 import com.zenlauncher.zen.domain.reading.ReadingSettings
@@ -79,6 +80,17 @@ class DataStorePreferencesRepository(
         ZenDuration.ofMinutesOrNull(prefs[Keys.PreferredMinutes]) ?: ZenDuration.Default
     }
 
+    /**
+     * Se guarda el id del tema, no un ordinal.
+     *
+     * Un ordinal ata el fichero de preferencias al orden en que estan escritas las
+     * constantes: meter un tema nuevo en medio cambiaria el tema de todo el mundo. Un id
+     * desconocido cae en el de fabrica, no revienta (ver `ZenThemeChoice.ofIdOrDefault`).
+     */
+    override val themeChoice: Flow<ZenThemeChoice> = readKey { prefs ->
+        ZenThemeChoice.ofIdOrDefault(prefs[Keys.Theme])
+    }
+
     override val favouritesSeeded: Flow<Boolean> =
         readKey { it[Keys.FavouritesSeeded] == true }
 
@@ -135,6 +147,10 @@ class DataStorePreferencesRepository(
 
     override suspend fun setPreferredDuration(duration: ZenDuration) {
         store.edit { prefs -> prefs[Keys.PreferredMinutes] = duration.wholeMinutes }
+    }
+
+    override suspend fun setThemeChoice(choice: ZenThemeChoice) {
+        store.edit { prefs -> prefs[Keys.Theme] = choice.id }
     }
 
     override suspend fun putActiveSession(session: ActiveSession) {
@@ -289,6 +305,7 @@ class DataStorePreferencesRepository(
         val Favourites = stringPreferencesKey("favourite_packages")
         val FavouritesSeeded = booleanPreferencesKey("favourites_seeded")
         val PreferredMinutes = intPreferencesKey("preferred_duration_minutes")
+        val Theme = stringPreferencesKey("theme_choice")
 
         val ActiveId = stringPreferencesKey("active_session_id")
         val ActiveStartedWall = longPreferencesKey("active_started_wall")

@@ -4,9 +4,12 @@ import app.cash.turbine.test
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.stringPreferencesKey
 import com.zenlauncher.zen.data.prefs.DataStorePreferencesRepository
 import com.zenlauncher.zen.domain.model.ActiveSession
 import com.zenlauncher.zen.domain.model.ZenDuration
+import com.zenlauncher.zen.domain.model.ZenThemeChoice
 import com.zenlauncher.zen.domain.weather.WeatherCondition
 import com.zenlauncher.zen.domain.weather.WeatherPlace
 import com.zenlauncher.zen.domain.weather.WeatherReading
@@ -57,6 +60,7 @@ class DataStorePreferencesRepositoryTest {
             repository.preferredDuration.first().wholeMinutes,
         )
         assertNull(repository.activeSession.first())
+        assertEquals(ZenThemeChoice.Default, repository.themeChoice.first())
     }
 
     @Test
@@ -168,6 +172,40 @@ class DataStorePreferencesRepositoryTest {
         } finally {
             secondScope.cancel()
         }
+    }
+
+    @Test
+    fun `el tema elegido sobrevive a cerrar y reabrir el almacen`() = runTest {
+        val file = temporaryFolder.newFile("tema.preferences_pb")
+        val firstScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+        DataStorePreferencesRepository(storeOn(file, firstScope))
+            .setThemeChoice(ZenThemeChoice.SISTEMA)
+        firstScope.cancel()
+
+        val secondScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+        val reopened = DataStorePreferencesRepository(storeOn(file, secondScope))
+
+        assertEquals(ZenThemeChoice.SISTEMA, reopened.themeChoice.first())
+        secondScope.cancel()
+    }
+
+    @Test
+    fun `un tema desconocido en el fichero cae en el de fabrica`() = runTest {
+        // Regresion: se guarda el id y no el ordinal justo para esto. Un fichero de
+        // preferencias tocado a mano, o escrito por una version que traia un tema mas,
+        // no puede dejar el telefono sin pantalla de inicio.
+        val file = temporaryFolder.newFile("tema-raro.preferences_pb")
+        val writeScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+        storeOn(file, writeScope).edit { prefs ->
+            prefs[stringPreferencesKey("theme_choice")] = "turquesa"
+        }
+        writeScope.cancel()
+
+        val readScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+        val reopened = DataStorePreferencesRepository(storeOn(file, readScope))
+
+        assertEquals(ZenThemeChoice.Default, reopened.themeChoice.first())
+        readScope.cancel()
     }
 
     @Test

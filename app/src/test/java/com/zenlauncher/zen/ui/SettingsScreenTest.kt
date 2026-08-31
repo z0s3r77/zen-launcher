@@ -8,6 +8,7 @@ import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
+import com.zenlauncher.zen.domain.model.ZenThemeChoice
 import com.zenlauncher.zen.presentation.settings.SettingsScreen
 import com.zenlauncher.zen.presentation.settings.SettingsUiState
 import com.zenlauncher.zen.presentation.theme.ZenTheme
@@ -31,22 +32,29 @@ class SettingsScreenTest {
     private var homeAppsOpened = 0
     private var backs = 0
     private var weatherOpened = 0
+    private var themesChosen = mutableListOf<ZenThemeChoice>()
 
     private fun render(
         isDefaultLauncher: Boolean,
         doubleTapLockEnabled: Boolean = false,
         nowPlayingEnabled: Boolean = false,
         homeAppsCount: Int = 0,
+        themeChoice: ZenThemeChoice = ZenThemeChoice.NEGRO,
     ) {
         composeRule.setContent {
             ZenTheme {
                 SettingsScreen(
-                    state = SettingsUiState(homeAppsCount = homeAppsCount, loading = false),
+                    state = SettingsUiState(
+                        homeAppsCount = homeAppsCount,
+                        themeChoice = themeChoice,
+                        loading = false,
+                    ),
                     isDefaultLauncher = isDefaultLauncher,
                     doubleTapLockEnabled = doubleTapLockEnabled,
                     nowPlayingEnabled = nowPlayingEnabled,
                     onOpenHomeApps = { homeAppsOpened++ },
                     onSetDuration = {},
+                    onSetTheme = { themesChosen += it },
                     onRequestHomeRole = { homeRoleRequests++ },
                     onToggleDoubleTapLock = { doubleTapToggles++ },
                     onToggleNowPlaying = { nowPlayingToggles++ },
@@ -161,5 +169,32 @@ class SettingsScreenTest {
             .performClick()
 
         assertEquals(1, nowPlayingToggles)
+    }
+
+    @Test
+    fun `la fila del tema ensena el puesto y al tocarla pide el siguiente`() {
+        render(isDefaultLauncher = true, themeChoice = ZenThemeChoice.NEGRO)
+
+        composeRule
+            .onNode(hasText("Tema") and hasText("NEGRO"))
+            .performScrollTo()
+            .assertHasClickAction()
+            .performClick()
+
+        assertEquals(listOf(ZenThemeChoice.SISTEMA), themesChosen)
+    }
+
+    @Test
+    fun `la fila del tema gira en circulo y vuelve al negro`() {
+        // Regresion: con dos temas, un `next()` que no diera la vuelta dejaria a quien
+        // eligio SISTEMA sin forma de volver desde esta fila.
+        render(isDefaultLauncher = true, themeChoice = ZenThemeChoice.SISTEMA)
+
+        composeRule
+            .onNode(hasText("Tema") and hasText("SISTEMA"))
+            .performScrollTo()
+            .performClick()
+
+        assertEquals(listOf(ZenThemeChoice.NEGRO), themesChosen)
     }
 }

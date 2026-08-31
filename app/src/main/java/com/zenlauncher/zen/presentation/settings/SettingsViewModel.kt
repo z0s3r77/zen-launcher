@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.zenlauncher.zen.domain.apps.AppRestrictionManager
 import com.zenlauncher.zen.domain.battery.BatterySaverController
 import com.zenlauncher.zen.domain.model.ZenDuration
+import com.zenlauncher.zen.domain.model.ZenThemeChoice
 import com.zenlauncher.zen.domain.repository.InstalledAppsRepository
 import com.zenlauncher.zen.domain.repository.PreferencesRepository
 import kotlinx.coroutines.flow.SharingStarted
@@ -20,6 +21,7 @@ data class SettingsUiState(
     val batterySaverEnabled: Boolean = false,
     /** Ciudad del tiempo, o null si no hay ninguna elegida y por tanto no hay red. */
     val weatherPlaceName: String? = null,
+    val themeChoice: ZenThemeChoice = ZenThemeChoice.Default,
     val loading: Boolean = true,
 )
 
@@ -42,11 +44,16 @@ class SettingsViewModel(
         installedApps.observeInstalledApps(),
         preferences.favouritePackages,
         restrictions.restrictedPackages,
-        // Duracion y ciudad viajan juntas: el `combine` tipado admite cinco fuentes y
-        // aqui ya son seis.
-        combine(preferences.preferredDuration, preferences.weatherPlace, ::Pair),
+        // Duracion, ciudad y tema viajan juntos: el `combine` tipado admite cinco
+        // fuentes y aqui ya son siete.
+        combine(
+            preferences.preferredDuration,
+            preferences.weatherPlace,
+            preferences.themeChoice,
+            ::Triple,
+        ),
         batterySaver.isEnabled,
-    ) { apps, favourites, restricted, (duration, weatherPlace), saverEnabled ->
+    ) { apps, favourites, restricted, (duration, weatherPlace, theme), saverEnabled ->
         // Se cuentan solo las que de verdad saldrian: una favorita desinstalada o
         // restringida despues de elegirla sigue en la lista guardada, pero no ocupa
         // hueco en la reticula, y el contador tiene que decir lo que se ve.
@@ -56,6 +63,7 @@ class SettingsViewModel(
             preferredDuration = duration,
             batterySaverEnabled = saverEnabled,
             weatherPlaceName = weatherPlace?.name,
+            themeChoice = theme,
             loading = false,
         )
     }.stateIn(
@@ -66,6 +74,18 @@ class SettingsViewModel(
 
     fun setPreferredDuration(duration: ZenDuration) {
         viewModelScope.launch { preferences.setPreferredDuration(duration) }
+    }
+
+    /**
+     * El tema al que se quiere ir, no "el siguiente".
+     *
+     * Quien decide cual toca es la pantalla, que ya tiene el actual en su estado. Si lo
+     * calculara aqui habria que leer `state.value`, y esa `StateFlow` es
+     * `WhileSubscribed`: fuera de la pantalla devuelve el valor inicial, asi que el
+     * primer cambio de tema podria partir del tema equivocado.
+     */
+    fun setThemeChoice(choice: ZenThemeChoice) {
+        viewModelScope.launch { preferences.setThemeChoice(choice) }
     }
 
     fun requestBatterySaver(): BatterySaverController.RequestResult = batterySaver.requestEnable()

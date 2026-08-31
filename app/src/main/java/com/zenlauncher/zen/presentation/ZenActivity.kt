@@ -45,6 +45,7 @@ import com.zenlauncher.zen.ZenApplication
 import com.zenlauncher.zen.domain.battery.BatterySaverController
 import com.zenlauncher.zen.domain.media.MediaTransport
 import com.zenlauncher.zen.domain.model.ZenDuration
+import com.zenlauncher.zen.domain.model.ZenThemeChoice
 import com.zenlauncher.zen.domain.notifications.NotificationsRepository
 import com.zenlauncher.zen.domain.system.LockTaskAction
 import com.zenlauncher.zen.domain.system.ScreenLocker
@@ -59,6 +60,7 @@ import com.zenlauncher.zen.presentation.navigation.ZenRoute
 import com.zenlauncher.zen.presentation.session.ActiveSessionScreen
 import com.zenlauncher.zen.presentation.session.SessionSummaryScreen
 import com.zenlauncher.zen.presentation.session.SessionViewModel
+import com.zenlauncher.zen.presentation.theme.ZenPalette
 import com.zenlauncher.zen.presentation.theme.ZenTheme
 import com.zenlauncher.zen.presentation.usage.DistractionScreen
 import com.zenlauncher.zen.presentation.usage.UsageViewModel
@@ -99,7 +101,13 @@ class ZenActivity : ComponentActivity() {
         val factory = zenViewModelFactory(container)
 
         setContent {
-            ZenTheme {
+            // El tema se resuelve aqui arriba y no dentro de una pantalla: lo pinta
+            // todo, tambien lo que no depende de la navegacion. Hasta que DataStore
+            // responde vale el de fabrica, que es el que Zen tenia siempre.
+            val themeChoice by container.preferences.themeChoice
+                .collectAsStateWithLifecycle(initialValue = ZenThemeChoice.Default)
+
+            ZenTheme(palette = ZenPalette.of(themeChoice)) {
                 CompositionLocalProvider(
                     LocalDoubleTapToLock provides { container.screenLocker.lock() },
                 ) {

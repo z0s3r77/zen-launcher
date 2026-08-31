@@ -11,6 +11,7 @@ import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import com.zenlauncher.zen.R
 import com.zenlauncher.zen.domain.model.ZenDuration
+import com.zenlauncher.zen.domain.model.ZenThemeChoice
 import com.zenlauncher.zen.presentation.components.MonoLabel
 import com.zenlauncher.zen.presentation.components.StatusMark
 import com.zenlauncher.zen.presentation.components.ZenHairline
@@ -28,6 +29,7 @@ fun SettingsScreen(
     nowPlayingEnabled: Boolean,
     onOpenHomeApps: () -> Unit,
     onSetDuration: (ZenDuration) -> Unit,
+    onSetTheme: (ZenThemeChoice) -> Unit,
     onRequestHomeRole: () -> Unit,
     onToggleDoubleTapLock: () -> Unit,
     onToggleNowPlaying: () -> Unit,
@@ -184,6 +186,34 @@ fun SettingsScreen(
                 )
                 ZenHairline()
 
+                // El aspecto va DESPUES de lo del sistema y del inicio, y en su
+                // propia seccion: no es un ajuste de Android que Zen solo pueda abrir
+                // —esos son los de arriba, con su letra pequena diciendolo— sino la
+                // unica preferencia de Zen sobre como se ve Zen.
+                Spacer(Modifier.height(ZenSpacing.XXLarge))
+                MonoLabel(text = stringResource(R.string.settings_appearance))
+                Spacer(Modifier.height(ZenSpacing.Small))
+                ZenHairline()
+
+                // Una fila que gira, no una lista de temas: con dos, una lista de dos
+                // filas ocupa el doble para decir lo mismo. El dato de la derecha es el
+                // tema puesto ahora, que es lo que hay que poder leer de un vistazo.
+                ZenListRow(
+                    label = stringResource(R.string.settings_theme),
+                    labelColor = ZenColors.Secondary,
+                    onClick = { onSetTheme(state.themeChoice.next()) },
+                    trailing = {
+                        MonoLabel(text = stringResource(state.themeChoice.labelRes()))
+                    },
+                )
+                ZenHairline()
+                Spacer(Modifier.height(ZenSpacing.Small))
+                MonoLabel(
+                    text = stringResource(R.string.settings_theme_notice),
+                    color = ZenColors.Dim,
+                    maxLines = 4,
+                )
+
                 Spacer(Modifier.height(ZenSpacing.XXLarge))
                 MonoLabel(text = stringResource(R.string.settings_duration))
                 Spacer(Modifier.height(ZenSpacing.Small))
@@ -210,4 +240,16 @@ fun SettingsScreen(
             }
         }
     }
+}
+
+/**
+ * El nombre visible de cada tema.
+ *
+ * Se resuelve aqui y no en el dominio: `ZenThemeChoice` no conoce recursos de Android
+ * —es lo que permite probarlo sin dispositivo— y su `id` es lo que se guarda, no lo que
+ * se ensena.
+ */
+private fun ZenThemeChoice.labelRes(): Int = when (this) {
+    ZenThemeChoice.NEGRO -> R.string.settings_theme_negro
+    ZenThemeChoice.SISTEMA -> R.string.settings_theme_sistema
 }

@@ -571,6 +571,7 @@ fun ZenNavHost(
                 nowPlayingEnabled = nowPlayingEnabled,
                 onOpenHomeApps = { navController.navigate(ZenRoute.HOME_APPS) },
                 onSetDuration = settingsViewModel::setPreferredDuration,
+                onSetTheme = settingsViewModel::setThemeChoice,
                 onRequestHomeRole = onRequestHomeRole,
                 onToggleDoubleTapLock = onToggleDoubleTapLock,
                 onToggleNowPlaying = onToggleNowPlaying,

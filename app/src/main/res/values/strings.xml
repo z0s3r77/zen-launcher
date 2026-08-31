@@ -193,6 +193,11 @@
     <string name="settings_system_notice">ANDROID NO PERMITE A UNA APP NORMAL CAMBIAR ESTOS DOS AJUSTES; ZEN SOLO ABRE LA PANTALLA CORRESPONDIENTE</string>
     <string name="settings_now_playing">Información de la canción</string>
     <string name="settings_now_playing_notice">PARA VER TÍTULO, ARTISTA Y CARÁTULA, ANDROID EXIGE EL ACCESO A NOTIFICACIONES. ZEN NO LEE NINGUNA: SOLO PREGUNTA QUÉ SUENA. SIN ESTO, EL MANDO FUNCIONA IGUAL</string>
+    <string name="settings_appearance">ASPECTO</string>
+    <string name="settings_theme">Tema</string>
+    <string name="settings_theme_negro">NEGRO</string>
+    <string name="settings_theme_sistema">SISTEMA</string>
+    <string name="settings_theme_notice">NEGRO APAGA EL PÍXEL EN AMOLED Y DEJA LOS GRISES MUY PEGADOS AL FONDO. SISTEMA MANTIENE EL FONDO NEGRO Y SUBE TEXTO Y SUPERFICIES A LOS GRISES DE ANDROID</string>
     <string name="settings_duration">DURACIÓN PREFERIDA</string>
     <string name="settings_home_apps">Aplicaciones en el Inicio</string>
 

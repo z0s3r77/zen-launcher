@@ -2,6 +2,7 @@ package com.zenlauncher.zen.domain.repository
 
 import com.zenlauncher.zen.domain.model.ActiveSession
 import com.zenlauncher.zen.domain.model.ZenDuration
+import com.zenlauncher.zen.domain.model.ZenThemeChoice
 import com.zenlauncher.zen.domain.news.NewsEdition
 import com.zenlauncher.zen.domain.reading.ReadingSettings
 import com.zenlauncher.zen.domain.weather.WeatherPlace
@@ -84,6 +85,14 @@ interface PreferencesRepository {
      */
     val lastNews: Flow<NewsEdition?>
 
+    /**
+     * El tema elegido. Ver [com.zenlauncher.zen.domain.model.ZenThemeChoice].
+     *
+     * Se guarda igual que la duracion preferida y no como un ajuste de "aspecto" aparte:
+     * es una preferencia mas, y lo que se persiste es el id del tema, no sus colores.
+     */
+    val themeChoice: Flow<ZenThemeChoice>
+
     suspend fun setRestricted(packageName: String, restricted: Boolean)
 
     suspend fun setFavourites(packages: List<String>)
@@ -91,6 +100,8 @@ interface PreferencesRepository {
     suspend fun markFavouritesSeeded()
 
     suspend fun setPreferredDuration(duration: ZenDuration)
+
+    suspend fun setThemeChoice(choice: ZenThemeChoice)
 
     suspend fun putActiveSession(session: ActiveSession)
 

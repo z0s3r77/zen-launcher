@@ -39,6 +39,10 @@ Dispositivo objetivo: **Nothing Phone (2a)** con Nothing OS 4.1 / Android 16.
   cambió porque el tope de ocho aplicaciones no tenía más razón de ser que esa: lo que no
   cabía no se podía alcanzar. Con las que caben no hay nada que desplazar y la pantalla se
   comporta exactamente como antes.
+- **Dos temas, y los dos oscuros** — **Ajustes Zen → ASPECTO → Tema** gira entre NEGRO
+  (el de siempre: negro puro y grises muy pegados al fondo) y SISTEMA (mismo fondo negro,
+  texto y superficies subidos a los grises de Android). No es claro contra oscuro y no hay
+  color dinámico. Ver [Dos temas, y los dos son oscuros](#dos-temas-y-los-dos-son-oscuros).
 - **Salida propia en cada pantalla** — con las barras del sistema ocultas, el gesto de
   atrás lo intercepta Zen (el primer deslizamiento de Android saca las barras en vez de
   volver, así que la aplicación reconoce el arrastre desde el borde por su cuenta y
@@ -751,6 +755,45 @@ sobre frames de 12 megapíxeles sería mover 48 MB por frame para tirarlos; capt
   metida en la misma pantalla.
 
 ---
+
+## Dos temas, y los dos son oscuros
+
+**Ajustes Zen → ASPECTO → Tema** gira entre **NEGRO** y **SISTEMA**. La fila enseña el que
+está puesto y un toque pasa al otro: con dos temas, una lista de dos filas ocuparía el
+doble para decir lo mismo.
+
+Lo que cambia **no es claro contra oscuro**: es cuánto se separan del fondo los grises que
+hay encima. `isSystemInDarkTheme()` se sigue ignorando a propósito, porque un tema claro
+reintroduciría el brillo que la aplicación intenta quitar.
+
+- **NEGRO** es el de siempre: negro puro y una escala apretada contra el fondo
+  (`#1B1B1E` … `#EAEAE7`), pensada para que el AMOLED apague el píxel y para que la
+  retícula no compita con el contenido.
+- **SISTEMA** sube superficies y texto a los grises con los que Android pinta sus propios
+  paneles de ajustes rápidos (`#1C1C1E` … `#FFFFFF`). Es un tema **más contrastado**, no
+  más claro.
+
+**El fondo sigue siendo negro puro en los dos**, y eso es lo que hace viable el segundo:
+la pantalla de inicio se mira cincuenta veces al día y se queda encendida mientras se
+elige aplicación, así que subir el fondo a un gris costaría batería en cada una de esas
+veces. Lo que sube es todo lo demás.
+
+**Tampoco hay color dinámico.** `dynamicDarkColorScheme()` existe desde API 31 y sacaría
+la paleta del fondo de pantalla, pero metería azules o verdes en una interfaz que es
+monocroma a propósito, y cambiaría sola al cambiar el fondo de pantalla. El ámbar de
+«restringida» y el rojo de «Salir de Zen» son los dos únicos colores, **no pertenecen a
+ninguna paleta y no cambian con el tema**: son significado, no aspecto.
+
+Los dos temas cumplen lo mismo, y está fijado en `ZenPaletteTest` recorriendo
+`ZenThemeChoice.entries`: fondo negro puro, todo lo que lleva texto por encima de AA
+(4,5:1), todo lo que es filete o marca hueca por debajo de 3:1, y la escala creciendo de
+forma monótona. Un tema nuevo que no cumpla eso no es una preferencia de aspecto, es una
+pantalla peor.
+
+La elección se guarda en DataStore **por su id de texto, no por su ordinal**: un ordinal
+ata el fichero de preferencias al orden en que están escritas las constantes, y meter un
+tema en medio le cambiaría el tema a todo el mundo. Un id desconocido cae en NEGRO en
+lugar de reventar, porque una excepción ahí deja el teléfono sin pantalla de inicio.
 
 ## Cómo se sale
 

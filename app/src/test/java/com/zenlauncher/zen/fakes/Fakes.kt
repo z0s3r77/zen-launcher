@@ -15,6 +15,7 @@ import com.zenlauncher.zen.domain.notifications.AppNotification
 import com.zenlauncher.zen.domain.notifications.NotificationsRepository
 import com.zenlauncher.zen.domain.model.InstalledApp
 import com.zenlauncher.zen.domain.model.ZenDuration
+import com.zenlauncher.zen.domain.model.ZenThemeChoice
 import com.zenlauncher.zen.domain.model.ZenSession
 import com.zenlauncher.zen.domain.repository.InstalledAppsRepository
 import com.zenlauncher.zen.domain.repository.PreferencesRepository
@@ -192,6 +193,7 @@ class FakePreferencesRepository(
     private val weatherAttempt = MutableStateFlow<Long?>(null)
     private val news = MutableStateFlow<NewsEdition?>(null)
     private val reading = MutableStateFlow(ReadingSettings())
+    private val theme = MutableStateFlow(ZenThemeChoice.Default)
 
     override val restrictedPackages: Flow<Set<String>> = restricted.asStateFlow()
     override val favouritePackages: Flow<List<String>> = favourites.asStateFlow()
@@ -205,6 +207,7 @@ class FakePreferencesRepository(
     override val lastWeatherAttemptAtMillis: Flow<Long?> = weatherAttempt.asStateFlow()
     override val lastNews: Flow<NewsEdition?> = news.asStateFlow()
     override val readingSettings: Flow<ReadingSettings> = reading.asStateFlow()
+    override val themeChoice: Flow<ZenThemeChoice> = theme.asStateFlow()
 
     override suspend fun setRestricted(packageName: String, restricted: Boolean) {
         this.restricted.value = if (restricted) {
@@ -224,6 +227,10 @@ class FakePreferencesRepository(
 
     override suspend fun setPreferredDuration(duration: ZenDuration) {
         this.duration.value = duration
+    }
+
+    override suspend fun setThemeChoice(choice: ZenThemeChoice) {
+        theme.value = choice
     }
 
     override suspend fun setWeatherPlace(place: WeatherPlace?) {

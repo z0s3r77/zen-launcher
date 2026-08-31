@@ -1,6 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- Zen es monocroma y siempre oscura. Estos valores solo alimentan la ventana
-         del sistema antes de que Compose dibuje; la paleta real vive en theme/ZenColors.kt -->
+    <!-- Zen es monocroma y siempre oscura. Este valor solo alimenta la ventana del
+         sistema antes de que Compose dibuje; las paletas reales viven en
+         theme/ZenPalette.kt y se eligen en Ajustes.
+
+         No depende del tema elegido a proposito: los dos temas comparten fondo negro
+         puro, asi que un solo color evita el destello al arrancar en ambos. Si algun dia
+         un tema cambiara el fondo, esto tendria que dejar de ser un color fijo. -->
     <color name="zen_background">#000000</color>
 </resources>

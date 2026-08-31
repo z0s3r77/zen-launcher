@@ -257,7 +257,9 @@ Cuatro capas en un módulo, **sin framework de inyección**:
 
 ```
 core/          ZenClock (los dos relojes del sistema, inyectable)
-domain/        modelo, repositorios (interfaces), sesión, apps (EssentialApps y
+domain/        modelo (incluido ZenThemeChoice: el tema elegido, con su id estable
+               y su vuelta en círculo; puro), repositorios (interfaces), sesión,
+               apps (EssentialApps y
                HomeAppOrder: puras; la segunda reparte los huecos de la retícula al
                reordenar y dice a qué hueco llega un arrastre), batería, media,
                news (NewsEdition y NewsRefresh: la segunda es pura y dice cuándo toca
@@ -380,7 +382,8 @@ presentation/  theme, components, una pantalla + ViewModel por destino
   referencia, siete barras solo se comparan entre ellas— y cada barra dice su día y su
   tiempo por `contentDescription`, que es como se cumple aquí la regla de que todo estado
   se lea como texto. No se anima.
-- **Sistema visual Industrial**: negro puro (AMOLED), monocromo salvo un ámbar reservado
+- **Sistema visual Industrial**: fondo negro puro (AMOLED) en los dos temas, monocromo
+  salvo un ámbar reservado
   a marcas de estado de 6dp, sin iconos, sin ondas al tocar (`NoIndication`), sin
   animaciones decorativas. La **única** excepción tipográfica es el texto de un libro:
   serif del sistema (`ReadingSerifFamily`) y `ZenColors.Reading`, más apagado que
@@ -388,6 +391,25 @@ presentation/  theme, components, una pantalla + ViewModel por destino
   de dos palabras. Fuera del lector no se usan ni una cosa ni la otra. Colores en `ZenColors`, espaciado en `ZenSpacing`, estilos
   con nombre de rol en `ZenTextStyles`, transiciones en `ZenMotion`: no fijes números
   sueltos en una pantalla.
+- **Hay dos paletas y ninguna es clara.** `ZenPalette.Negro` (la de siempre) y
+  `ZenPalette.Sistema` (los grises de los paneles de Android), elegibles en Ajustes →
+  ASPECTO. Lo que cambia es **cuánto se separan del fondo los grises de encima**, no claro
+  contra oscuro: `isSystemInDarkTheme()` se sigue ignorando y **no hay color dinámico** —
+  `dynamicDarkColorScheme()` metería azules o verdes en una interfaz monocroma y cambiaría
+  sola al cambiar el fondo de pantalla—. **El fondo es negro puro en las dos** y no se
+  negocia: la home se queda encendida mientras se elige aplicación. El ámbar y el rojo
+  viven fuera de `ZenPalette` porque son significado y no aspecto.
+  `ZenPaletteTest` recorre `ZenThemeChoice.entries`, así que **un tema nuevo tiene que
+  cumplir lo mismo que el viejo** (AA en todo lo que lleva texto, por debajo de 3:1 en
+  filetes, escala monótona) o el test falla solo.
+- **`ZenColors` es estado global de proceso, y es a propósito.** Cada tono es una lectura
+  de `ZenColors.active`, que es estado de Compose: cambiar de tema invalida a quien lo
+  haya leído —composición **y** dibujo— y la pantalla se repinta sola. Un
+  `CompositionLocal` sería lo idiomático y **no se puede leer dentro de un `DrawScope`**:
+  media docena de piezas pintan en un `Canvas` (Respira, los glifos del reproductor, el
+  editor de esquinas del escáner) y habría que sacar cada color a mano por encima del
+  dibujo en cada una. Lo fija **solo `ZenTheme`, y desde un `SideEffect`**: escribirlo
+  durante la composición invalidaría a los hijos que acaban de leerlo, que es un bucle.
 - **Ningún test JVM puede comprobar la detección sobre una foto real.** Nada de OpenCV ni
   de ML Kit se ejecuta en la JVM. Lo que sí se prueba —y es lo que decide— son las
   funciones puras: el ordenado de esquinas contra números escritos a mano, y la
