@@ -237,9 +237,10 @@ tocar cualquier cosa, dar por supuesto lo siguiente:
 ## Comandos
 
 ```bash
-./gradlew testDebugUnitTest             # 952 tests JVM (incluye UI de Compose sobre Robolectric)
+./gradlew testDebugUnitTest             # 976 tests JVM (incluye UI de Compose sobre Robolectric)
 ./gradlew assembleDebug                 # APK -> app/build/outputs/apk/debug/
-./gradlew installDebug                  # build + instalar en dispositivo conectado
+./gradlew installRelease                # R8 + firma debug: lo que va al telefono de uso diario
+./gradlew installDebug                  # solo para depurar: debuggable y sin R8, mucho mas lento
 ./gradlew lint                          # informe -> app/build/reports/lint-results-*.html
 ./gradlew connectedDebugAndroidTest     # instrumentados (app/src/androidTest), necesita un dispositivo arm64
 ./gradlew clean
@@ -526,12 +527,16 @@ Kotlin DSL, versiones centralizadas en `gradle/libs.versions.toml` (añade ahí 
 referencia como `libs.*`). Puntos que difieren de plantillas antiguas y que **fallarán
 si se asume lo contrario**:
 
-- **AGP 9.3.1** compila Kotlin de forma nativa. No hay plugin
+- **AGP 9.4.0** (exige Gradle ≥ 9.6.0; el wrapper va en 9.7.1) compila Kotlin de forma nativa. No hay plugin
   `org.jetbrains.kotlin.android` a propósito: es incompatible con el DSL de AGP 9.
 - `compileSdk` usa la forma de bloque de AGP 9, no la asignación `compileSdk = 36`.
 - `minSdk = 34` (Android 14): las APIs por debajo no necesitan guardas de compatibilidad.
 - Reglas de R8 en `app/src/main/keepRules/rules.keep`, no en `proguard-rules.pro`. En
-  release `optimization { enable = false }`, así que R8 está apagado.
+  release `optimization { enable = true }`: R8 encendido (dex de 47 MB a 5 MB). Toda
+  dependencia con JNI o reflexión sin reglas propias necesita su `-keep` ahí (OpenCV ya
+  lo tiene); un fallo de R8 no sale al compilar, sale al abrir la pantalla en el móvil.
+- La release se firma con la clave de debug a propósito: sustituye a la debug instalada
+  sin borrar datos.
 - Room/KSP **no** son opción: KSP es incompatible con el Kotlin integrado de AGP 9 (ver
   README). Por eso la persistencia es SQLite a mano.
 - `org.gradle.configuration-cache=true`: leer estado mutable en configuración rompe el

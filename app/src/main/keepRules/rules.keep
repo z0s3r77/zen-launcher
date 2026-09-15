@@ -4,9 +4,12 @@
 # For more details, see
 #   https://d.android.com/r/tools/r8/keep-rules
 
-# If your project uses WebView with JS, uncomment the following
-# and specify the fully qualified class name to the JavaScript interface
-# class:
-#-keepclassmembers class fqcn.of.javascript.interface.for.webview {
-#   public *;
-#}
+# El AAR de OpenCV no trae reglas y su .so enlaza por nombre: ~3000 simbolos
+# `Java_org_opencv_*` y `org/opencv/core/CvException` resuelta desde nativo.
+# Renombrarlos rompe el escaner en tiempo de ejecucion, no al compilar.
+-keep class org.opencv.** { *; }
+
+# ML Kit crea sus registrars por reflexion con el constructor vacio. La regla que trae
+# firebase-components solo guarda la clase, y en modo completo R8 borra el constructor:
+# medido en el dispositivo, NoSuchMethodException TextRegistrar.<init> al arrancar.
+-keep class * implements com.google.firebase.components.ComponentRegistrar { <init>(); }

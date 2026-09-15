@@ -882,33 +882,35 @@ resuelva.
 
 ## Cómo compilar
 
-Requiere JDK 17 o superior y el Android SDK con la plataforma **android-36.1**.
+Requiere JDK 17 o superior y el Android SDK con la plataforma **android-37.2**.
 
 ```bash
-./gradlew testDebugUnitTest      # 189 tests, sin dispositivo
+./gradlew testDebugUnitTest      # 976 tests, sin dispositivo
 ./gradlew lint                   # informe en app/build/reports/
 ./gradlew assembleDebug          # APK en app/build/outputs/apk/debug/
+./gradlew assembleRelease        # APK optimizada con R8 en app/build/outputs/apk/release/
 ```
 
 Cadena de herramientas fijada:
 
 | | |
 |---|---|
-| Gradle | 9.5.0 |
-| AGP | 9.3.1, con **Kotlin 2.2.10 integrado** (sin plugin `kotlin-android`) |
-| Compose | BOM 2026.06.01 (Compose 1.11.4) |
-| compileSdk / minSdk / targetSdk | 36.1 / 34 / 36 |
+| Gradle | 9.7.1 |
+| AGP | 9.4.0, con **Kotlin 2.2.10 integrado** (sin plugin `kotlin-android`) |
+| Compose | BOM 2026.09.00 (Compose 1.12.1) |
+| compileSdk / minSdk / targetSdk | 37.2 / 34 / 36 |
 
-> Compose 1.12 (BOM 2026.08.00) exige `compileSdk 37`; se fija el BOM anterior para
-> respetar el `compileSdk 36.1` del proyecto. El plugin de Compose se declara en la
-> versión exacta del Kotlin que integra AGP.
+> `targetSdk` sigue en 36 porque el teléfono va con Android 16: subirlo a 37 activaría
+> los cambios de comportamiento de Android 17, que no se pueden probar en él. El plugin
+> de Compose se declara en la versión exacta del Kotlin que integra AGP.
 
 ## Cómo instalarlo en el Nothing Phone (2a)
 
 1. Activar **Opciones de desarrollo** (Ajustes → Información del teléfono → pulsar
    siete veces en Número de compilación) y dentro, **Depuración USB**.
 2. Conectar por USB y aceptar la huella del ordenador.
-3. `./gradlew installDebug`
+3. `./gradlew installRelease` (la debug es para depurar: sin R8 y debuggable, va mucho
+   más lenta)
 4. Abrir Zen → **Ajustes Zen → Zen como pantalla de inicio** y aceptar el diálogo del
    sistema (`RoleManager.ROLE_HOME`).
 5. Opcional: **Ajustes Zen → Duración preferida** y **Aplicaciones en el Inicio**.

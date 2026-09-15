@@ -6,8 +6,8 @@ plugins {
 android {
     namespace = "com.zenlauncher.zen"
     compileSdk {
-        version = release(36) {
-            minorApiLevel = 1
+        version = release(37) {
+            minorApiLevel = 2
         }
     }
 
@@ -38,8 +38,11 @@ android {
     buildTypes {
         release {
             optimization {
-                enable = false
+                enable = true
             }
+            // Zen se instala a mano en un solo telefono: firmar con la clave de debug deja
+            // que la release sustituya a la debug instalada sin borrar notas ni sesiones.
+            signingConfig = signingConfigs.getByName("debug")
         }
     }
     testOptions {
